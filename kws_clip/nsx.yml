@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: Apache-2.0
+# NSX manifest for kws_clip. Board modules come from the apollo510_evb
+# starter profile; helia-rt / ns-cmsis-nn are pinned to this repo's
+# third_party/revisions.json (v1.19.0 / v7.31.0), not the registry defaults
+# (v1.16.0 / v7.29.2) that neuralspotx/examples/kws_infer still lists.
+schema_version: 2
+
+project:
+  name: kws_clip
+
+targets:
+  default: apollo510_evb
+  supported:
+    - apollo510_evb
+
+toolchain: arm-none-eabi-gcc
+channel: stable
+
+modules:
+  - nsx-power
+  - name: nsx-cmsis-nn
+    project: ns-cmsis-nn
+    revision: b386770a4588e2b46a6ca6df97fa487c9f3dedd4
+  - name: nsx-helia-rt
+    project: helia-rt
+    revision: cfab1523a58bcfab69a106efea22c530b8100285
+
+module_registry:
+  projects:
+    ns-cmsis-nn:
+      url: https://github.com/AmbiqAI/ns-cmsis-nn.git
+      revision: b386770a4588e2b46a6ca6df97fa487c9f3dedd4
+    helia-rt:
+      url: https://github.com/AmbiqAI/helia-rt.git
+      revision: cfab1523a58bcfab69a106efea22c530b8100285
+  modules:
+    nsx-cmsis-nn:
+      project: ns-cmsis-nn
+      revision: b386770a4588e2b46a6ca6df97fa487c9f3dedd4
+    nsx-helia-rt:
+      project: helia-rt
+      revision: cfab1523a58bcfab69a106efea22c530b8100285
+
+features: {}

@@ -1,0 +1,83 @@
+# SPDX-License-Identifier: Apache-2.0
+# Zoo hygiene for a clean `git add` / push (this folder as a standalone repo
+# or as a path in the parent tree).
+#
+# SHIP: sources, nsx.yml, nsx.lock, generated C arrays (model + clip PCM),
+#       assets/*.tflite, kws_uart/host/synthetic.wav, host Python, docs.
+# DO NOT SHIP: NSX clones, configure glue, firmware build trees, venvs,
+#              AmbiqSuite, research dual-demo trees, absolute-path manifests.
+
+# --- regenerable archives / local CMake ---
+dist/
+build/
+**/build/
+**/build-host/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+compile_commands.json
+.ninja_deps
+.ninja_log
+*.ninja
+
+# --- NSX materialises these on lock / configure (multi-hundred MB) ---
+# No trailing slash: uart/pdm `modules` may be a symlink (git treats that as a file).
+modules
+boards
+.nsx
+**/cmake/nsx/
+
+# --- embed_model.py sidecar (absolute host paths) ---
+**/kws_model_manifest.json
+**/host/generated/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+.venv-hpx/
+.venv-hpx-new/
+venv/
+env/
+*.egg-info/
+
+# --- firmware objects if someone builds outside build/ ---
+*.o
+*.obj
+*.elf
+*.map
+*.hex
+*.axf
+*.lst
+
+# --- logs / editor / OS ---
+*.log
+*.swp
+*~
+.DS_Store
+Thumbs.db
+.cache/
+.idea/
+.vscode/
+*.user
+
+# --- never vendor these even if copied in by mistake ---
+AmbiqSuite*/
+.venv*/
+demo_a/
+demo_b/
+apollo510_kws_demo/
+optimizationExperiments/
+results/
+artifacts/
+datasets/
+third_party/
+host/corpus/*.wav
+host/captures/
+host/corpus_snr/

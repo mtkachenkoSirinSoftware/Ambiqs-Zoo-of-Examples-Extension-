@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: Apache-2.0
+# NSX manifest for kws_pdm. Pins match kws_clip / third_party/revisions.json.
+schema_version: 2
+
+project:
+  name: kws_pdm
+
+targets:
+  default: apollo510_evb
+  supported:
+    - apollo510_evb
+
+toolchain: arm-none-eabi-gcc
+channel: stable
+
+modules:
+  - nsx-power
+  - name: nsx-cmsis-nn
+    project: ns-cmsis-nn
+    revision: b386770a4588e2b46a6ca6df97fa487c9f3dedd4
+  - name: nsx-helia-rt
+    project: helia-rt
+    revision: cfab1523a58bcfab69a106efea22c530b8100285
+
+module_registry:
+  projects:
+    ns-cmsis-nn:
+      url: https://github.com/AmbiqAI/ns-cmsis-nn.git
+      revision: b386770a4588e2b46a6ca6df97fa487c9f3dedd4
+    helia-rt:
+      url: https://github.com/AmbiqAI/helia-rt.git
+      revision: cfab1523a58bcfab69a106efea22c530b8100285
+  modules:
+    nsx-cmsis-nn:
+      project: ns-cmsis-nn
+      revision: b386770a4588e2b46a6ca6df97fa487c9f3dedd4
+    nsx-helia-rt:
+      project: helia-rt
+      revision: cfab1523a58bcfab69a106efea22c530b8100285
+
+features: {}

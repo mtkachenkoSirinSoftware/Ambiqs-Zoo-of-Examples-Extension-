@@ -1,0 +1,20 @@
+{
+  "measurement": "kws_uart_host_litert_on_identity_wav",
+  "platform": "host",
+  "clip": {
+    "name": "synthetic",
+    "source": "kws_core/tests/golden/synthetic.txt",
+    "wav": "host/synthetic.wav",
+    "n_samples": 16000,
+    "sha256": "341c766cf618051d7ed879fe4ac29d1e725c8f40ada914d73d431db5cc0ea677"
+  },
+  "model": {
+    "file": "assets/depgraph_r060_kd_int8.tflite",
+    "sha256": "ae08012b5a5dd1fd59673bba3d4b1d1c43d7cd1f410537824d7eb6c2edb40fb7",
+    "frontend": "pruneopt.features.mfcc_tf"
+  },
+  "pred": "go",
+  "label": 1,
+  "score": 0.9803471164612327,
+  "notes": "Host LiteRT last argmax on this PCM. MCU pred= must match this name on identical samples sent over UART. Not PDM, not hpx."
+}

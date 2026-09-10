@@ -1,0 +1,9 @@
+# NSX app build artifacts (root .gitignore is the source of truth for a push)
+build/
+build-host/
+cmake/nsx/
+boards
+modules
+.nsx
+model/generated/kws_model_manifest.json
+host/generated/

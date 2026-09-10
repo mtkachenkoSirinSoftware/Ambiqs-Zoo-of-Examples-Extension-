@@ -1,0 +1,18 @@
+{
+  "measurement": "kws_pdm_live_mic",
+  "platform": "apollo510_evb",
+  "status": "deferred_until_mems_on_gpio_50_51",
+  "model": {
+    "file": "assets/depgraph_r060_kd_int8.tflite",
+    "sha256": "ae08012b5a5dd1fd59673bba3d4b1d1c43d7cd1f410537824d7eb6c2edb40fb7"
+  },
+  "pdm": {
+    "clk_gpio": 50,
+    "data_gpio": 51,
+    "clk_out_hz": 2048000,
+    "fs_hz": 16000,
+    "osr": 64,
+    "recipe": "AmbiqSuite pdm_fft / pdm_rtt_stream PLL"
+  },
+  "notes": "Live PDM pred is not GATE 3. No host LiteRT comparison. peak= staying ~0 means the MEMS is silent or on the other L/R edge (rebuild with -DKWS_PDM_LR_SWAP=1). MEMS part, header, and VDDH2 voltage are not guessed."
+}
