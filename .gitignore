@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-# Zoo hygiene for a clean `git add` / push (this folder as a standalone repo
-# or as a path in the parent tree).
+# Hygiene for a standalone checkout (or a path inside a larger tree).
 #
 # SHIP: sources, nsx.yml, nsx.lock, generated C arrays (model + clip PCM),
 #       assets/*.tflite, kws_uart/host/synthetic.wav, host Python, docs.
 # DO NOT SHIP: NSX clones, configure glue, firmware build trees, venvs,
-#              AmbiqSuite, research dual-demo trees, absolute-path manifests.
+#              AmbiqSuite, absolute-path manifests.
 
 # --- regenerable archives / local CMake ---
 dist/

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Build / verify the Ambiq KWS example-zoo tarball (phase 6).
+"""Build / verify the Ambiq KWS examples tarball.
 
 Usage
 -----
@@ -11,7 +11,7 @@ Usage
 The archive is a single top-level directory ``ambiq_kws_examples/``. It must
 contain the three examples, ``kws_core``, one WAV, one ``.tflite``, host
 Python, README, and LICENSE. It must not contain an AmbiqSuite SDK, a venv,
-research trees, NSX clones, or build artifacts.
+NSX ``modules/`` clones, or build artifacts.
 """
 from __future__ import annotations
 

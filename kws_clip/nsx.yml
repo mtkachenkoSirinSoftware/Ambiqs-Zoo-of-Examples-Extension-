@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # NSX manifest for kws_clip. Board modules come from the apollo510_evb
-# starter profile; helia-rt / ns-cmsis-nn are pinned to this repo's
-# third_party/revisions.json (v1.19.0 / v7.31.0), not the registry defaults
-# (v1.16.0 / v7.29.2) that neuralspotx/examples/kws_infer still lists.
+# starter profile. helia-rt 1.19.0 / ns-cmsis-nn 7.31.0 — not the
+# kws_infer README pair (1.16.0 / 7.29.2).
 schema_version: 2
 
 project:

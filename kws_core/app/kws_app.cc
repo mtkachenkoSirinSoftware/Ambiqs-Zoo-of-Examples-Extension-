@@ -10,8 +10,7 @@
 
 namespace kws {
 namespace {
-// All steady-state storage is static (spec §39). Sizes are documented in
-// docs/architecture.md's memory map.
+// All steady-state storage is static. Sizes live in kws_config.h.
 AudioRingBuffer g_pcm;
 StreamingFrontend g_frontend;
 FeatureRingBuffer g_features;
@@ -58,7 +57,7 @@ uint32_t KwsApp::OnAudioBlock(const AudioSample* samples, uint32_t count, uint32
   ++telemetry_.audio_blocks_received;
 
   // Emit every frame that has become complete. Only the new frames are
-  // analysed; nothing already in the feature ring is recomputed (spec §18).
+  // analysed; nothing already in the feature ring is recomputed.
   uint32_t produced = 0;
   while (g_analysed + KWS_FRAME_LENGTH <= g_pcm.Available()) {
     if (!g_pcm.Read(g_analysed, g_frame, KWS_FRAME_LENGTH)) break;

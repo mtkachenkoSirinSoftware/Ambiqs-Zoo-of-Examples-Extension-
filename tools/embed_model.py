@@ -1,32 +1,21 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Turn a .tflite into the artefacts the Apollo510 firmware needs to link it.
+"""Embed an INT8 .tflite as C arrays for the Apollo510 examples.
 
 Emits, from one model file:
 
   kws_model_data.cc        the flatbuffer as an aligned C array
   kws_model_contract.h     shape / dtype / quantisation / op set / resolver
                            registrations, read out of the flatbuffer
-  kws_model_manifest.json  provenance (SHA256, sizes, versions, source paths)
+  kws_model_manifest.json  SHA256, sizes, ops (local; not shipped in the tarball)
 
-Why this exists
----------------
-`config/kws_config.h` consumes the generated contract's scales and zero
-points when that header is present.  Hand-copied literals are the class of
-fact this repository refuses to trust (CLAUDE.md: "a number is not a result
-until it carries the identity it was produced under").  Re-quantise, re-run
-this script, rebuild: the firmware follows the new `.tflite`.  A Class C
-model (wrong shape / dtype / class count) still fails `--check` and the
-compile-time size asserts rather than silently mis-scaling.
+``kws_config.h`` consumes the generated scales and zero points. Re-quantise,
+re-run this script, rebuild. Class C (wrong shape / dtype / class count) fails
+``--check`` instead of silently mis-scaling.
 
-Why it does not use TensorFlow
-------------------------------
-The firmware side must be reproducible without a TF install, and the on-disk
-format is a stable flatbuffer.  Rather than guess the schema, this script reads
-the enums and the MicroMutableOpResolver method names out of the heliaRT
-checkout (`third_party/helia-rt`) — the same source the runtime is built from.
-If that checkout is missing the script fails loudly rather than falling back to
-a snapshot that could be stale.
+Enums and ``MicroMutableOpResolver`` method names come from a helia-rt
+checkout (``nsx lock`` → ``modules/helia-rt``, or ``--helia-rt``). TensorFlow
+is not required.
 """
 
 from __future__ import annotations
@@ -154,7 +143,7 @@ class Table:
 
 
 # TFLite schema field indices. Source of truth:
-#   third_party/helia-rt/tensorflow/lite/schema/schema_generated.h
+#   helia-rt tensorflow/lite/schema/schema_generated.h
 # (field order in a flatbuffer table is part of the format and never reordered
 #  for an existing schema, only appended to.)
 F_MODEL_VERSION, F_MODEL_OPCODES, F_MODEL_SUBGRAPHS = 0, 1, 2
@@ -196,7 +185,7 @@ _TENSOR_TYPES_FALLBACK = {
     17: "INT4",
 }
 
-# Firmware geometry this demo can run without a rewrite (docs/evb_bringup.md).
+# Firmware I/O this pipeline can run without a rewrite.
 FIRMWARE_INPUT_SHAPE = [1, 49, 10, 1]
 FIRMWARE_OUTPUT_SHAPE = [1, 12]
 FIRMWARE_IO_TYPE = "INT8"
@@ -235,9 +224,9 @@ def _find_helia_rt(explicit: Path | None, start: Path) -> Path:
     if found is not None:
         return found
     sys.exit(
-        "error: could not locate third_party/helia-rt. The TFLite enums and the\n"
-        "       MicroMutableOpResolver method names are read from that checkout so\n"
-        "       they cannot go stale. Pass --helia-rt <path>, or clone\n"
+        "error: could not locate helia-rt. TFLite enums and MicroMutableOpResolver\n"
+        "       names are read from that checkout. Pass --helia-rt <path>, run\n"
+        "       `nsx lock` under kws_clip/ (modules/helia-rt), or clone\n"
         "       https://github.com/AmbiqAI/helia-rt @ cfab1523."
     )
 
@@ -347,7 +336,7 @@ def _quant_scalar(v: object) -> float | int | None:
 
 
 def load_sidecar(model: Path, explicit: Path | None = None) -> dict | None:
-    """Sibling ``*.helia.json`` written by pruneopt.export.helia."""
+    """Sibling ``*.helia.json`` if present (optional unstructured-sidecar check)."""
     if explicit is not None:
         if not explicit.is_file():
             sys.exit(f"error: sidecar {explicit} not found")
@@ -532,7 +521,7 @@ def _banner(model_path: Path, info: dict, tool: str) -> str:
     return (
         f"// GENERATED FILE — do not edit.\n"
         f"// Produced by {tool} from:\n"
-        f"//   {model_path}\n"
+        f"//   {model_path.name}\n"
         f"//   SHA256 {info['sha256']}\n"
         f"//   {info['size_bytes']} bytes, TFLite schema v{info['schema_version']}\n"
     )
@@ -664,7 +653,7 @@ def main() -> int:
         help="directory for the generated files (default: model/generated)",
     )
     ap.add_argument("--symbol", default="g_kws_model_data", help="C array symbol name")
-    ap.add_argument("--helia-rt", type=Path, default=None, help="path to third_party/helia-rt")
+    ap.add_argument("--helia-rt", type=Path, default=None, help="path to helia-rt (nsx lock → modules/helia-rt)")
     ap.add_argument(
         "--inspect-only",
         action="store_true",

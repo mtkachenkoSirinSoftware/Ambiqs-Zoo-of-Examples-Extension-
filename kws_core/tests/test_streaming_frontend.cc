@@ -140,7 +140,7 @@ TEST(StreamingFrontend, FftResolvesASingleBinTone) {
   EXPECT_NEAR(mag[k0], KWS_FFT_SIZE / 2.0f, 1.0f);
 }
 
-// The core §18 requirement: feeding audio hop-by-hop must give the same window
+// Feeding audio hop-by-hop must give the same window
 // as computing the whole spectrogram at once.
 TEST(StreamingFrontend, IncrementalMatchesFullWindowComputation) {
   StreamingFrontend fe;

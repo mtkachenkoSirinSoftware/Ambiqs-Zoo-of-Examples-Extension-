@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Optional RTT channel-1 hop-PCM dump (Suite pdm_rtt_stream split).
-// Labels stay on SWO. Not LiteRT, not GATE 3.
+// Labels stay on SWO.
 #ifndef KWS_PDM_RTT_H_
 #define KWS_PDM_RTT_H_
 

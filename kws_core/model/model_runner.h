@@ -8,13 +8,12 @@
 //                           is writable so the quantisation, post-processing and
 //                           application paths are still exercised end to end.
 //                           This is the default when nothing is defined.
-//   KWS_RUNTIME_HELIA_RT    heliaRT (third_party/helia-rt) — Ambiq's LiteRT for
-//                           Micro / TFLM runtime, kernels supplied by heliaCORE
-//                           (ns-cmsis-nn) via NSX_HELIA_RT_BACKEND=helia.
-//                           Consumes the .tflite embedded by tools/embed_model.py.
-//   KWS_RUNTIME_EXECUTORCH  nsx-executorch — the NSX adapter for the stock
-//                           ExecuTorch Cortex-M runtime. Consumes a .pte, NOT a
-//                           .tflite; see docs/runtime_integration.md.
+//   KWS_RUNTIME_HELIA_RT    heliaRT — Ambiq's LiteRT for Micro / TFLM runtime,
+//                           kernels from heliaCORE (ns-cmsis-nn) via
+//                           NSX_HELIA_RT_BACKEND=helia. Consumes the .tflite
+//                           embedded by tools/embed_model.py.
+//   KWS_RUNTIME_EXECUTORCH  nsx-executorch — NSX adapter for ExecuTorch
+//                           Cortex-M. Consumes a .pte, not a .tflite.
 //
 // ns-cmsis-nn is deliberately absent from that list: it is a *kernel library*,
 // not a runtime (its own README: "Not a model runtime"). It is reached through
@@ -45,10 +44,8 @@
 
 // Tensor arena / working-set budget, in bytes.
 //
-// 32 KiB is the value heliaPROFILER's own MLPerf-Tiny KWS configs use for the
-// *unpruned* DS-CNN reference
-// (third_party/helia-profiler/configs/mlperf_tiny/kws_rt_power_ap510.yaml), so
-// it is a ceiling for this r=0.60 pruned model rather than a fit.
+// 32 KiB is the ceiling heliaPROFILER uses for unpruned MLPerf-Tiny KWS, so it
+// is a ceiling for this r=0.60 graph rather than a fitted size.
 //
 // What is actually known: linking this model against helia_rt::reference and
 // calling AllocateTensors() on the host reports arena_used_bytes() == 12352.
@@ -66,9 +63,8 @@
 //
 // So: keep the ceiling until an Apollo510 build reports its own figure, then
 // shrink to that plus headroom. The backend logs it at boot
-// (ModelRunner::arena_used_bytes(), printed by app/main.cc) and `hpx profile`
-// reports it as HPX_ALLOCATED_ARENA. Sizing this from the reference number
-// would be a host fact dressed as a target one.
+// (ModelRunner::arena_used_bytes() on SWO). `hpx profile` reports a different
+// figure (HPX_ALLOCATED_ARENA) from other firmware.
 #ifndef KWS_TENSOR_ARENA_BYTES
 #define KWS_TENSOR_ARENA_BYTES (32 * 1024)
 #endif
@@ -83,8 +79,7 @@ struct Prediction {
 
 extern const char* const kLabels[KWS_NUM_CLASSES];
 
-// Which backend this binary was built with, for telemetry and for the run
-// manifest — a result row that does not name its runtime is not comparable.
+// Which backend this binary was built with (SWO `runtime=`).
 enum class Runtime : uint8_t { kHostStub = 0, kHeliaRt, kExecuTorch };
 
 class ModelRunner {
@@ -97,7 +92,7 @@ class ModelRunner {
 
   // Quantizes `mfcc` (KWS_NUM_FRAMES * KWS_NUM_MFCC floats) into the input
   // tensor. Kept separate from Invoke() so the quantization step is testable
-  // and measurable on its own (spec §32).
+  // on its own.
   bool SetInput(const float* mfcc);
 
   bool Invoke();

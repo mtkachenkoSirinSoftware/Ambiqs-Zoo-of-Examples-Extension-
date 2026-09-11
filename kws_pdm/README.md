@@ -1,30 +1,16 @@
-# kws_pdm — EVB PDM MEMS → MFCC → heliaRT on Apollo510
+# kws_pdm
 
-Always-on KWS on a **live PDM microphone**. Labels print on **SWO**
-(`nsx view`). This is not dummy-input `kws_infer`, not flash-clip GATE 3,
-and not UART replay. Same graph, different acoustic identity.
+Always-on KWS on a **live PDM microphone**. Labels on **SWO** (`nsx view`).
+Same graph as `kws_clip` / `kws_uart`, different PCM origin — do not compare
+`live pred=` to the flash/UART clip.
 
-Connect a digital microphone first — same note as AmbiqSuite `pdm_fft`.
+Connect a digital mic first (AmbiqSuite `pdm_fft` note).
 
-## Official silicon bring-up (do this first)
+Demonstrates:
 
-Two official paths, then this image. Do not debug KWS MFCC while PDM itself is
-silent.
-
-1. **NSX** `neuralspotx/examples/audio_capture` — `nsx-audio`, 16 kHz, SWO
-   `Frame N  peak=`. README there says the Apollo510 EVB has an **onboard**
-   PDM MEMS. The AmbiqSuite EVB Quick Start / BSP do **not** list an onboard
-   mic; PDM0 is GPIO **50 CLK / 51 DATA** on **VDDH2**. Treat their onboard
-   claim as unverified here until their board file is checked. Peak on SWO is
-   still the right preflight.
-2. **Suite** `boards/apollo510_evb/examples/audio/pdm_rtt_stream` (or
-   `pdm_fft`) — same pins, PLL 2.048 MHz CLK → 16 kHz, PCM on RTT ch1.
-
-Then flash `kws_pdm`. Default backend is **`nsx-audio`** (hop 320, HFRC2_ADJ
-16 kHz — [`host/nsx_audio_default.md`](host/nsx_audio_default.md)). That is
-not the Suite PLL recipe. HAL PLL backend: `nsx build -- -DKWS_PDM_USE_NSX_AUDIO=OFF`.
-
-Do not debug KWS MFCC while `audio_capture` / `pdm_rtt_stream` itself is silent.
+- `nsx-audio` PDM (`nsx_audio_pdm_default`, hop **320** @ 16 kHz)
+- `Frame N  peak=` in the `audio_capture` shape
+- Optional RTT channel-1 hop dump (`pdm_rtt_stream` split)
 
 ## Hardware
 
@@ -33,36 +19,46 @@ Do not debug KWS MFCC while `audio_capture` / `pdm_rtt_stream` itself is silent.
 | PDM0 clock out | **50** | `AM_BSP_GPIO_PDM0_CLK_CB` |
 | PDM0 data in | **51** | `AM_BSP_GPIO_PDM0_DATA_CB` |
 
-The EVB Quick Start has **no onboard microphone** (BSP GPIO 50/51).
-`audio_capture`'s onboard-mic sentence is their README, not a fact we re-measured.
-Firmware requests **left** (`AM_HAL_PDM_CHANNEL_LEFT`). `nsx-audio` hard-codes
-`bLRSwap=0`. MEMS L/R is part-specific: if SWO `peak=` stays ~0 with a live
-mic, rebuild the **HAL** backend with `-DKWS_PDM_USE_NSX_AUDIO=OFF
--DKWS_PDM_LR_SWAP=1`.
+Clock/data sit on **VDDH2**. The MEMS part, header, and rail vs 3.3 V are
+not guessed here.
 
-**Not guessed:** exact MEMS part, which header carries 50/51, VDDH2 voltage
-vs 3.3 V mic, extra passives.
+The Apollo510 EVB Quick Start does not list an onboard mic. `audio_capture`
+README says onboard MEMS — treat that as their README, not a re-measured
+board fact. Firmware requests **left**. `nsx-audio` hard-codes `bLRSwap=0`.
+If `peak=` stays ~0 with a live mic, rebuild the **HAL** backend:
 
-## Clock
+```bash
+script -q -e -c 'cmake -DKWS_PDM_USE_NSX_AUDIO=OFF -DKWS_PDM_LR_SWAP=1 build/apollo510_evb' /tmp/cmake-pdm-lr.log
+nsx build --app-dir .
+```
 
-**Default (`nsx-audio`):** HFRC2_ADJ → 16 kHz (see
-[`host/nsx_audio_default.md`](host/nsx_audio_default.md)). Hop = 320 samples
-(20 ms), not `audio_capture`'s 480.
+## Bring-up (do this first)
 
-**HAL fallback** (`-DKWS_PDM_USE_NSX_AUDIO=OFF`) is the `pdm_fft` PLL recipe:
+Do not debug MFCC while PDM itself is silent.
+
+1. NSX `audio_capture` — SWO `Frame N  peak=` at 16 kHz / 480 samples/frame.
+2. Suite `pdm_rtt_stream` or `pdm_fft` — GPIO 50/51, PLL 2.048 MHz → 16 kHz.
+
+Default `kws_pdm` backend is **`nsx-audio`** (HFRC2_ADJ → **exactly** 16 kHz,
+hop 320). That is not the Suite PLL recipe and not `audio_capture`’s 480-sample
+frame. Clock reading: [`host/nsx_audio_default.md`](host/nsx_audio_default.md).
+
+HAL PLL (Suite `pdm_fft` recipe):
+
+```bash
+script -q -e -c 'cmake -DKWS_PDM_USE_NSX_AUDIO=OFF build/apollo510_evb' /tmp/cmake-pdm-hal.log
+nsx build --app-dir .
+```
 
 ```
 PDM_CLK_OUT   = 24.576 MHz / (1+1) / (5+1) = 2.048 MHz
 SAMPLING_FREQ = 2.048 MHz / (64 * 2)       = 16 kHz
 ```
 
-PCM16 on the HAL path = bits `[23:8]` of the 32-bit DMA word. Host tests cover
-that packing — they are **not** a microphone measurement.
-
-## Build
+## Build & Run
 
 ```bash
-cd ambiq_kws_examples/kws_pdm
+cd kws_pdm
 nsx lock      --app-dir .
 nsx configure --app-dir .
 nsx build     --app-dir .
@@ -70,100 +66,62 @@ nsx flash     --app-dir .
 nsx view      --app-dir .
 ```
 
-Optional L/R swap (HAL backend only):
+Host check (no mic): `make test-host`
 
-```bash
-nsx build --app-dir . -- -DKWS_PDM_USE_NSX_AUDIO=OFF -DKWS_PDM_LR_SWAP=1
-```
-
-Optional hop-PCM dump on **RTT channel 1** (Suite `pdm_rtt_stream` split;
-labels stay on SWO). Default is **OFF**. This `nsx` has no CMake-arg
-passthrough, so set the cache then build (wrap `cmake` in `script` if
-`file(WRITE /dev/stdout)` fails):
-
-```bash
-script -q -e -c 'cmake -DKWS_PDM_RTT_PCM=ON build/apollo510_evb' /tmp/cmake-pdm-rtt.log
-nsx build --app-dir .
-nsx flash --app-dir .
-# kill nsx view first — the J-Link OB is exclusive
-python3 host/rtt_pcm_dump.py --duration 3 --out /tmp/pdm.wav
-```
-
-That `.wav` is 16 kHz mono int16 from RTT ch1. It is **not** LiteRT and
-**not** GATE 3. Channel 1 is PCM, not a label — see [`rtt/README.md`](rtt/README.md).
-
-Host checks (no board, no mic):
-
-```bash
-make test-host
-```
-
-If `nsx configure` fails with `file(WRITE /dev/stdout)` and no TTY:
-
-```bash
-script -q -e -c 'nsx configure --app-dir .' /tmp/nsx-configure-pdm.log
-```
-
-## Expected output (SWO)
+## Expected output
 
 ```
 kws_pdm runtime=helia-rt arena_used=<N>
 perf_mode=LOW cpu_hz=96000000
-pdm backend=nsx-audio hop=320 fs=16000 clk=HFRC2_ADJ (not pdm_fft PLL)
-gpio clk=50 data=51  (BSP; audio_capture README onboard-mic claim unverified here)
+pdm backend=nsx-audio hop=320 fs=16000 clk=HFRC2_ADJ
+gpio clk=50 data=51
 model sha256=ae08012b5a5d
-pred is live PDM, not GATE 3, not a GSC clip, not hpx profile
-rtt ch1=PCM 16kHz int16 hop=320 (not labels; labels on SWO)   # only with -DKWS_PDM_RTT_PCM=ON
 Frame 50  peak=<n> dc=<n> overruns=0 dma_faults=0 derr=0
 live pred=<label> score=<s> fired=0|1 invoke_cycles=<DWT> invoke_us=<us>
-  invoke_us = CYCCNT / cpu_hz (see perf_mode=); not hpx profile
-event label=<kw> score=<s>     # only when the recognizer fires
 ```
 
-| Line | What it is |
+| Line | Meaning |
 |---|---|
-| `peak=` / `dc=` | last 20 ms hop; `Frame N  peak=` matches `audio_capture` shape; not a KWS score |
-| `live pred=` | last raw argmax on **this** PDM window; not LiteRT on a WAV |
-| `fired=` / `event` | recognizer (smooth / threshold / debounce) |
-| `invoke_cycles=` | DWT of **this** `Invoke`, not `hpx profile` |
+| `peak=` / `dc=` | last 20 ms hop; not a KWS score |
+| `live pred=` | last raw argmax on this PDM window |
+| `fired=` / `event` | recognizer |
+| `invoke_cycles=` | DWT of this `Invoke` |
 
-1 Hz `live pred=` is expected; `event` is rarer. Do not quote either as GATE 3.
+~1 Hz `live pred=` is expected; `event` is rarer.
+
+## Optional: RTT channel 1 (PCM dump)
+
+Same split as Suite `pdm_rtt_stream`: ch1 = hop PCM, labels on SWO. Default
+**OFF**.
+
+```bash
+script -q -e -c 'cmake -DKWS_PDM_RTT_PCM=ON build/apollo510_evb' /tmp/cmake-pdm-rtt.log
+nsx build --app-dir . && nsx flash --app-dir .
+# J-Link OB is exclusive — stop nsx view first
+python3 host/rtt_pcm_dump.py --duration 3 --out /tmp/pdm.wav
+```
+
+16 kHz mono int16. Do not score that file as the flash/UART identity.
+[`rtt/README.md`](rtt/README.md).
 
 ## Key files
 
 | File | Purpose |
 |---|---|
-| `src/main.cc` | `nsx_system_init`, drain PDM hops, SWO |
-| `src/nsx_audio_source.c` | default `AudioSource` via `nsx-audio`, hop 320 |
-| `src/kws_pdm_rtt.c` | optional RTT ch1 hop dump (`-DKWS_PDM_RTT_PCM=ON`) |
-| `src/apollo510_audio.c` | HAL PLL backend (`-DKWS_PDM_USE_NSX_AUDIO=OFF`) |
-| `audio/pdm_pcm16.h` | PLL identity + 24-bit → PCM16 |
-| `host/nsx_audio_default.md` | 2.2 source reading of `nsx_audio_pdm_default` |
-| `host/rtt_pcm_dump.py` | drain RTT ch1 → 16 kHz int16; **not** GATE 3 |
-| `rtt/` | SEGGER RTT V8.58.0; ch1 = PCM, not a label |
+| `src/main.cc` | init, drain hops, SWO |
+| `src/nsx_audio_source.c` | default `AudioSource`, hop 320 |
+| `src/apollo510_audio.c` | HAL PLL (`-DKWS_PDM_USE_NSX_AUDIO=OFF`) |
+| `src/kws_pdm_rtt.c` | RTT ch1 (`-DKWS_PDM_RTT_PCM=ON`) |
+| `host/rtt_pcm_dump.py` | drain ch1 → `.wav` / `.pcm` |
 | `host/expected.json` | pins + SHA; **no** `pred` field |
-| `nsx.yml` / `nsx.lock` | helia-rt 1.19.0 + ns-cmsis-nn 7.31.0 pins |
 
 ## Model
 
-`assets/depgraph_r060_kd_int8.tflite` SHA256
-`ae08012b5a5dd1fd59673bba3d4b1d1c43d7cd1f410537824d7eb6c2edb40fb7`.
-A Demo A student is usually **Class B**: see [`../bring_your_model.md`](../bring_your_model.md).
-PDM `live pred=` is still not GATE 3 after a swap.
+Same shipping INT8 as `kws_clip`. Swap: [`../bring_your_model.md`](../bring_your_model.md).
+PDM `live pred=` is still the microphone after a swap.
 
-## Linked image (host, not latency)
+If `nsx configure` has no TTY:
 
-`nsx build` produces `build/apollo510_evb/kws_pdm` (ELF) and `.bin`. One
-successful link on this tree **with** `-DKWS_PDM_RTT_PCM=ON` (ch1 ring in
-SRAM; default OFF is smaller):
-
-| Segment | Bytes |
-|---|---|
-| `.text` | 293104 |
-| `.data` | 2620 |
-| `.bss` | 512960 |
-| `.bin` | 296 KiB |
-
-That is the **linked image**, not Apollo510 latency, not a microphone result.
-`pred=` on SWO still needs a MEMS on GPIO 50/51, `nsx flash`, and `nsx view`.
-
+```bash
+script -q -e -c 'nsx configure --app-dir .' /tmp/nsx-configure-pdm.log
+```

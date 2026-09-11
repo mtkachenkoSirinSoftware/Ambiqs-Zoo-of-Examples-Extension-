@@ -144,7 +144,7 @@ void StreamingFrontend::PushFrame(const AudioSample* frame, FeatureRingBuffer* r
 bool StreamingFrontend::ComputeMfccWindow(const FeatureRingBuffer& ring, float clip_peak,
                                           float* out) const {
   if (!initialised_ || out == nullptr || !ring.WindowReady()) return false;
-  // mfcc_tf.py divides by tf.reduce_max(x) -- the SIGNED maximum, not max|x|.
+  // The training frontend divides by tf.reduce_max(x) -- the SIGNED maximum, not max|x|.
   // The magnitude spectrum is insensitive to the divisor's sign, so only its
   // magnitude matters here, but which sample supplies it does matter: for a
   // clip whose negative excursion exceeds its positive one the two differ, and

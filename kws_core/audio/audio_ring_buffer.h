@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Fixed-size circular PCM buffer (spec §17). No malloc/new, ever.
+// Fixed-size circular PCM buffer. No malloc/new, ever.
 #ifndef AUDIO_RING_BUFFER_H_
 #define AUDIO_RING_BUFFER_H_
 
@@ -13,7 +13,7 @@ namespace kws {
 // Single-producer (audio block consumer in the main loop) / single-consumer
 // (frontend) ring. Writes never block and never allocate; when the producer
 // outruns the consumer the oldest samples are dropped and `overruns()` counts
-// it — silently losing audio is not acceptable (spec §16).
+// it — silently losing audio is not acceptable.
 class AudioRingBuffer {
  public:
   AudioRingBuffer() = default;

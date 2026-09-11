@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Temporal post-processing (spec §28): a spoken keyword must produce one event,
+// Temporal post-processing: a spoken keyword must produce one event,
 // not one per overlapping inference window.
 #ifndef RECOGNIZER_H_
 #define RECOGNIZER_H_

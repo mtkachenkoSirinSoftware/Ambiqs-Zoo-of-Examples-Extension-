@@ -17,23 +17,8 @@ TFLITE = ZOO / "assets" / "depgraph_r060_kd_int8.tflite"
 SHIPPING = "ae08012b5a5dd1fd59673bba3d4b1d1c43d7cd1f410537824d7eb6c2edb40fb7"
 
 
-def _first_existing(candidates: list[Path]) -> Path:
-    for p in candidates:
-        if p.is_file():
-            return p
-    return Path("/nonexistent")
-
-
 _class_b_env = os.environ.get("KWS_CLASS_B_TFLITE", "")
-CLASS_B = _first_existing(
-    [
-        Path(_class_b_env) if _class_b_env else Path("/nonexistent"),
-        Path(
-            "/workspace/artifacts/tflite_export/pruned_distill/"
-            "depgraph_r0.60_kd_int8.tflite"
-        ),
-    ]
-)
+CLASS_B = Path(_class_b_env) if _class_b_env else Path("/nonexistent")
 CLASS_C = (
     ZOO
     / "kws_clip"
@@ -155,9 +140,9 @@ class CheckClassC(unittest.TestCase):
         self.assertFalse(payload["compatibility"]["can_embed"])
 
 
-@unittest.skipUnless(CLASS_B.is_file(), "Demo A student .tflite not in this checkout")
+@unittest.skipUnless(CLASS_B.is_file(), "optional class-B .tflite not in this checkout")
 class CheckClassB(unittest.TestCase):
-    def test_kd_student_is_class_b_and_embeds(self) -> None:
+    def test_class_b_embeds(self) -> None:
         proc = _run_check(CLASS_B)
         self.assertEqual(proc.returncode, 0, proc.stderr)
         payload = json.loads(proc.stdout)

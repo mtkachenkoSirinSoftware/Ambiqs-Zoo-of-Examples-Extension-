@@ -6,7 +6,7 @@
 //   boards/apollo510_evb/examples/audio/pdm_fft/src/pdm_fft.c
 //   boards/apollo510_evb/examples/audio/pdm_rtt_stream/src/pdm_rtt_stream.c
 //
-// Connect a PDM MEMS to GPIO 50 (CLK) / 51 (DATA) first. Live pred is not GATE 3.
+// Connect a PDM MEMS to GPIO 50 (CLK) / 51 (DATA) first.
 #ifndef APOLLO510_AUDIO_H_
 #define APOLLO510_AUDIO_H_
 

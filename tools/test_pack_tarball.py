@@ -38,7 +38,7 @@ class Members(unittest.TestCase):
         self.assertFalse(any("host/generated/" in n for n in names))
         self.assertFalse(any(".nsx/" in n for n in names))
 
-    def test_no_forbidden_research_trees(self) -> None:
+    def test_no_forbidden_paths(self) -> None:
         names = {p.as_posix() for p in iter_members(ZOO)}
         blob = "\n".join(names)
         for bad in FORBIDDEN_SUBSTR:

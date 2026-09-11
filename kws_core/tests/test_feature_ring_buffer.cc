@@ -50,7 +50,7 @@ TEST(FeatureRingBuffer, FrameFromNewestIndexesBackwards) {
   EXPECT_EQ(r.FrameFromNewest(10), nullptr);
 }
 
-// Spec §19: the window must be exposed oldest-first without shifting history.
+// The window must be exposed oldest-first without shifting history.
 TEST(FeatureRingBuffer, WindowIsOldestFirst) {
   FeatureRingBuffer r;
   r.Reset();

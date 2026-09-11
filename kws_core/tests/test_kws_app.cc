@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// End-to-end behaviour of the source-agnostic pipeline (spec §26, §27, §31).
+// End-to-end behaviour of the source-agnostic pipeline.
 #include "app/kws_app.h"
 
 #include <gtest/gtest.h>
@@ -84,7 +84,7 @@ TEST(KwsApp, NoInferenceBeforeAFullWindowExists) {
   EXPECT_EQ(app.telemetry().inferences_run, 0u);
 }
 
-// Spec §26/§27: inference cadence is decoupled from and slower than the
+// Inference cadence is decoupled from and slower than the
 // frontend cadence, and acquisition is never paused for it.
 TEST(KwsApp, InferenceRunsAtTheConfiguredStride) {
   KwsApp app;
@@ -142,7 +142,7 @@ TEST(KwsApp, HandlesNullAndEmptyBlocks) {
   EXPECT_EQ(app.OnAudioBlock(&s, 0, 0), 0u);
 }
 
-// Spec §39: nothing may allocate after Init(). A crude but effective proxy is
+// Nothing may allocate after Init(). A crude but effective proxy is
 // that a long run does not change the process's steady-state behaviour; the
 // stronger guarantee comes from the code containing no new/malloc at all.
 TEST(KwsApp, FlushInferenceRunsWhenStrideHasNotElapsed) {
@@ -173,7 +173,7 @@ TEST(KwsApp, FlushInferenceRunsWhenStrideHasNotElapsed) {
   EXPECT_GE(app.last_label(), 0);
 }
 
-// Spec §39: nothing may allocate after Init(). A crude but effective proxy is
+// Nothing may allocate after Init(). A crude but effective proxy is
 // that a long run does not change the process's steady-state behaviour; the
 // stronger guarantee comes from the code containing no new/malloc at all.
 TEST(KwsApp, RepeatedInitIsIdempotent) {

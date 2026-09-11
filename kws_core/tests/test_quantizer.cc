@@ -11,7 +11,7 @@ using kws::DequantizeInt8;
 using kws::ModelRunner;
 using kws::QuantizeInt8;
 
-// Spec §25: the parameters are read from the .tflite, never assumed.
+// The parameters are read from the .tflite, never assumed.
 TEST(Quantizer, UsesModelParametersNotDefaults) {
   EXPECT_NE(KWS_INPUT_SCALE, 1.0f);
   EXPECT_NE(KWS_INPUT_ZERO_POINT, 0);
@@ -75,8 +75,8 @@ TEST(Quantizer, SoftmaxHandlesSaturatedLogitsWithoutOverflow) {
 }
 
 TEST(ModelRunner, LabelOrderIsTfdsNotMlperf) {
-  // Taken from optimizationExperiments/src/pruneopt/data/gsc.py. The classic
-  // MLPerf ordering starts with silence/unknown and puts go at index 11.
+  // tfds speech_commands order. MLPerf Tiny starts with silence/unknown and
+  // puts go at index 11.
   EXPECT_STREQ(kws::kLabels[0], "down");
   EXPECT_STREQ(kws::kLabels[1], "go");
   EXPECT_STREQ(kws::kLabels[9], "yes");

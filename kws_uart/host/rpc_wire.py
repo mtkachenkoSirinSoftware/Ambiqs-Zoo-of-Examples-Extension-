@@ -3,9 +3,8 @@
 """Minimal nanopb-compatible encoder for kws_uart USB RPC (no grpcio-tools).
 
 Wire: ``[uint32 LE length][NsxRpcMessage]``. INFER input is 16000 int16 LE
-(32000 bytes). This is **not** the neuralspotx ``usb_rpc`` 5-class toy, **not**
-LiteRT on the host, and **not** GATE 3 by itself — the MCU `pred=` on SWO
-is the identity check against `host/expected.json`.
+(32000 bytes). MCU ``pred=`` on SWO is the identity check against
+``host/expected.json``.
 """
 from __future__ import annotations
 

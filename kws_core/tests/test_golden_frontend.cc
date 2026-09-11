@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-// Golden frontend validation (spec §21).
+// Golden frontend validation.
 //
-// The reference side of these vectors is produced by host/gen_golden.py, which
-// imports pruneopt.features.mfcc_tf -- the exact module the model was trained
-// with. This is the host half of GATE 4/GATE 8; the on-target half still needs
-// the EVB and is deferred, not claimed here.
+// Host vectors in tests/golden/ were produced with the same tf.signal MFCC
+// the model was trained with. On-target MFCC identity is the flashed binary.
 #include <gtest/gtest.h>
 
 #include <cmath>
@@ -153,8 +151,7 @@ TEST_P(GoldenFrontend, StreamingPathMatchesTrainingFrontend) {
   }
 }
 
-// Spec §21 also asks for exact-match percentage on the quantized features,
-// because that is what the model actually consumes.
+// Exact-match rate on the quantized features (what the model consumes).
 TEST_P(GoldenFrontend, QuantizedFeaturesMatchAlmostExactly) {
   Golden g;
   ASSERT_TRUE(LoadGolden(GetParam(), &g));

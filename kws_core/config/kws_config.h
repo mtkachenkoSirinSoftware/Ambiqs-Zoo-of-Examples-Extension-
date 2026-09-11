@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-// Single source of truth for every derived constant (spec §46).
-// Values are NOT guessed: they come from docs/model_contract.md, which was
-// extracted from the actual .tflite and the actual training frontend
-// (optimizationExperiments/src/pruneopt/features/mfcc_tf.py).
+// Single source of truth for every derived constant.
+// Values come from the shipping .tflite and the training frontend
+// (tf.signal MFCC, 30/20 ms).
 #ifndef KWS_CONFIG_H_
 #define KWS_CONFIG_H_
 
@@ -13,7 +12,7 @@
 // ---------------------------------------------------------------- audio ----
 #define KWS_SAMPLE_RATE_HZ      16000
 #define KWS_NUM_CHANNELS        1
-// Canonical internal representation (spec §7): mono 16 kHz signed PCM16.
+// Canonical internal representation: mono 16 kHz signed PCM16.
 typedef int16_t AudioSample;
 #ifdef __cplusplus
 // This header stays C-compatible for the platform/ layer, so the typedef is at
@@ -21,8 +20,8 @@ typedef int16_t AudioSample;
 namespace kws { using AudioSample = ::AudioSample; }
 #endif
 
-// Feature frame geometry — from mfcc_tf.py, NOT from kws_ds_cnn.yaml, which
-// disagrees (see docs/model_contract.md "Discrepancy" section).
+// Feature frame geometry from the training tf.signal MFCC (30/20 ms), not a
+// guessed YAML.
 #define KWS_FRAME_LENGTH        480   // 30 ms @ 16 kHz  (tf.signal.stft frame_length)
 #define KWS_FRAME_STEP          320   // 20 ms @ 16 kHz  (tf.signal.stft frame_step)
 #define KWS_FFT_SIZE            512   // fft_length=None -> next pow2 of 480
@@ -70,19 +69,18 @@ static_assert(KWS_NUM_CLASSES == KWS_MODEL_OUTPUT_ELEMENTS,
 #endif
 
 // ------------------------------------------------------- DMA / cadence -----
-// Block size chosen systematically (spec §14): one DMA block == one frame hop,
-// so a completed block yields exactly one new feature frame and the frontend
-// never has to buffer a partial hop.
+// One DMA block == one frame hop, so a completed block yields exactly one
+// new feature frame and the frontend never has to buffer a partial hop.
 #define KWS_AUDIO_BLOCK_SAMPLES KWS_FRAME_STEP            // 320 = 20 ms
 #define KWS_AUDIO_BLOCK_MS      (KWS_AUDIO_BLOCK_SAMPLES * 1000 / KWS_SAMPLE_RATE_HZ)
 
-// PCM ring: inference window + frontend overlap + safety margin (spec §17).
+// PCM ring: inference window + frontend overlap + safety margin.
 #define KWS_PCM_RING_SAMPLES    (KWS_CLIP_SAMPLES + KWS_FRAME_LENGTH + 4 * KWS_AUDIO_BLOCK_SAMPLES)
 
-// Feature ring holds one full window plus margin (spec §19).
+// Feature ring holds one full window plus margin.
 #define KWS_FEATURE_RING_FRAMES (KWS_NUM_FRAMES + 8)
 
-// Sliding-window inference cadence (spec §26/§27): decoupled from frame cadence.
+// Sliding-window inference cadence: decoupled from frame cadence.
 #define KWS_INFERENCE_STRIDE_FRAMES 5                     // 5 * 20 ms = 100 ms
 
 // ------------------------------------------------------- recognizer --------
@@ -100,7 +98,7 @@ static_assert(KWS_NUM_CLASSES == KWS_MODEL_OUTPUT_ELEMENTS,
 #define KWS_LOG_LEVEL KWS_LOG_LEVEL_INFO
 #endif
 
-// Compile-time contract checks (spec §46).
+// Compile-time contract checks.
 // tf.signal.stft emits floor((N - frame_length) / frame_step) + 1 frames.
 static_assert(KWS_NUM_FRAMES == 1 + (KWS_CLIP_SAMPLES - KWS_FRAME_LENGTH) / KWS_FRAME_STEP,
               "frame count inconsistent with tf.signal.stft framing");

@@ -23,7 +23,7 @@ test-uart: ## kws_uart framing + WAV identity + C++ decoder (no EVB)
 test-pdm: ## kws_pdm PLL recipe + PCM16 packing (no EVB, not a mic measurement)
 	$(MAKE) -C kws_pdm test-host
 
-test-tools: ## Class A/B/C --check (Class B embed if a student .tflite is present)
+test-tools: ## Class A/B/C --check (class B embed if an extra .tflite is present)
 	python3 tools/test_embed_check.py
 
 test-pack: ## Tarball include/exclude (no EVB)
@@ -34,7 +34,7 @@ test: test-core test-clip test-uart test-pdm test-tools test-pack ## All host te
 check: ## Classify MODEL (default: shipping assets .tflite)
 	python3 tools/embed_model.py $(MODEL) --check
 
-dist: ## Submission tarball under dist/
+dist: ## Tarball under dist/
 	python3 tools/pack_tarball.py --archive $(ARCHIVE)
 
 verify-dist: dist ## Pack then check inclusion / exclusion / shipping SHA

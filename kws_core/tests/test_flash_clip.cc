@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Flash-clip GATE 3 input identity: player PCM == golden, main-loop drain
+// Flash-clip input identity: player PCM == golden, main-loop drain
 // still hits inference stride, StreamEnd flushes the last window.
 #include "audio/flash_clip_player.h"
 

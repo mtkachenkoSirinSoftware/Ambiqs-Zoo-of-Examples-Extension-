@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Source lists for kws_core. Included by:
-#   ambiq_kws_examples/kws_core/CMakeLists.txt  (standalone host tests)
+#   kws_core/CMakeLists.txt                     (standalone host tests)
 #   kws_clip / kws_uart / kws_pdm CMakeLists    (NSX images)
 #
 # UART FIFO-poll HAL + framing live in kws_uart/, not here. kws_core stays

@@ -7,15 +7,11 @@
 // nsx::helia_rt built with NSX_HELIA_RT_BACKEND=helia routes CONV_2D,
 // DEPTHWISE_CONV_2D, FULLY_CONNECTED, AVERAGE_POOL_2D and RESHAPE onto
 // heliaCORE (ns-cmsis-nn) MVE kernels. Switching to NSX_HELIA_RT_BACKEND=
-// cmsis_nn or reference changes performance and nothing else about this file —
-// which is exactly the comparison target/README.md describes.
+// cmsis_nn or reference changes performance and nothing else about this file.
 //
-// Verified against third_party/helia-rt at helia-rt-v1.19.0-3-gcfab1523:
-//   tensorflow/lite/micro/micro_interpreter.h   (ctor, input/output,
-//                                                AllocateTensors,
-//                                                arena_used_bytes)
-//   tensorflow/lite/micro/micro_mutable_op_resolver.h  (Add* methods)
-//   docs/examples/cmake.md                      (include set, InitializeTarget)
+// Verified against helia-rt 1.19.0 (`cfab1523`):
+//   tensorflow/lite/micro/micro_interpreter.h
+//   tensorflow/lite/micro/micro_mutable_op_resolver.h
 #include "model/model_runner.h"
 
 #if defined(KWS_RUNTIME_HELIA_RT)
@@ -60,7 +56,7 @@ namespace {
 // (which surfaces as a misleading AllocateTensors failure).
 using KwsOpResolver = tflite::MicroMutableOpResolver<KWS_MODEL_NUM_OPS>;
 
-// All backend state is static: no heap, no steady-state allocation (spec §39).
+// All backend state is static: no heap, no steady-state allocation.
 // alignas(16) matches heliaPROFILER's generated firmware and keeps the arena
 // clear of Cortex-M55 cache-line / MVE load boundaries.
 KWS_ARENA_ATTR alignas(16) uint8_t g_arena[KWS_TENSOR_ARENA_BYTES];

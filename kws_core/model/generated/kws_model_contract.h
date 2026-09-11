@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // GENERATED FILE — do not edit.
 // Produced by tools/embed_model.py from:
-//   /workspace/optimizationExperiments/results/ptq_hpo_distilled/tflite/depgraph_r060_kd_int8.tflite
+//   assets/depgraph_r060_kd_int8.tflite
 //   SHA256 ae08012b5a5dd1fd59673bba3d4b1d1c43d7cd1f410537824d7eb6c2edb40fb7
 //   18256 bytes, TFLite schema v3
 //

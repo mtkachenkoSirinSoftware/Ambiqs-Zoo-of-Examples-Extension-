@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-// Feature ring (spec §19). Circular indexing only — the complete history is
-// never memmove'd (spec §52).
+// Feature ring. Circular indexing only — the complete history is never memmove'd.
 //
 // What is stored is one *linear mel energy* vector per frame, not the finished
-// MFCC. See docs/model_contract.md §"Streaming vs. peak normalisation": the
-// training frontend divides the whole 1 s clip by max(x) before the log, so the
+// MFCC. The training frontend divides the whole 1 s clip by max(x) before the log, so the
 // log/DCT stage depends on a value that is only known once the window is
 // complete. Mel energies are the last representation that is still causal, and
 // they are linear in the input, so the normaliser can be applied later without

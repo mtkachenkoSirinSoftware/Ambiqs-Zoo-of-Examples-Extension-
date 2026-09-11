@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// INT8 affine conversion (spec §25). Parameters come from the .tflite, never
+// INT8 affine conversion. Parameters come from the .tflite, never
 // from an assumption of scale=1 / zero_point=0.
 #ifndef QUANTIZER_H_
 #define QUANTIZER_H_

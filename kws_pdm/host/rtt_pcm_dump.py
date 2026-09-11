@@ -3,18 +3,14 @@
 """Dump kws_pdm hop PCM from SEGGER RTT **channel 1** to a 16 kHz int16 file.
 
 Same channel split as AmbiqSuite ``pdm_rtt_stream``: ch1 is raw PCM, not a
-label. Labels stay on SWO (``nsx view``). This script is **not LiteRT** and
-**not GATE 3** — do not score the file with the DS-CNN.
+label. Labels stay on SWO (``nsx view``). Do not score this file as the
+flash/UART identity clip.
 
-Kill ``nsx view`` / JLinkSWOViewer first — the J-Link OB is exclusive.
+Stop ``nsx view`` / JLinkSWOViewer first — the J-Link OB is exclusive.
 
-Firmware must be built with ``-DKWS_PDM_RTT_PCM=ON``. Style: NSX CoreMark
-``rtt_capture.py`` (pylink ``rtt_read``) plus a DTCM scan for the control
-block so ``--rtt-addr`` is optional.
+Firmware must be built with ``-DKWS_PDM_RTT_PCM=ON``.
 
-Usage:
-    source /workspace/scripts/env_floor2.sh
-    python3 kws_pdm/host/rtt_pcm_dump.py --duration 3 --out /tmp/pdm.wav
+    python3 host/rtt_pcm_dump.py --duration 3 --out /tmp/pdm.wav
 """
 from __future__ import annotations
 
@@ -33,7 +29,7 @@ SCAN_CHUNK = 0x4000
 DEFAULT_DEVICE = "AP510NFA-CBR"
 NOTES = (
     "RTT ch1 is 16 kHz int16 hop PCM, not a label. "
-    "This capture is not LiteRT and not GATE 3."
+    "This capture is not LiteRT and not the flash/UART identity clip."
 )
 
 

@@ -153,7 +153,7 @@ TEST(AudioRingBuffer, PeekNewestSurvivesWrap) {
 }
 
 TEST(AudioRingBuffer, NoAllocationSizedStatically) {
-  // Static storage is the contract (spec §17/§39): the object must be big
+  // Static storage: the object must be big
   // enough to hold the ring itself, proving it is not a heap handle.
   EXPECT_GE(sizeof(AudioRingBuffer), AudioRingBuffer::Capacity() * sizeof(AudioSample));
 }

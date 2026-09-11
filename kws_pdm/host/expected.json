@@ -21,5 +21,5 @@
     "osr": 64,
     "recipe": "AmbiqSuite pdm_fft / pdm_rtt_stream PLL (HAL fallback -DKWS_PDM_USE_NSX_AUDIO=OFF)"
   },
-  "notes": "Live PDM pred is not GATE 3. No host LiteRT comparison. Firmware default is nsx-audio HFRC2_ADJ 16 kHz hop 320. peak= staying ~0 means the MEMS is silent or on the other L/R edge (HAL rebuild: -DKWS_PDM_USE_NSX_AUDIO=OFF -DKWS_PDM_LR_SWAP=1). MEMS part, header, and VDDH2 voltage are not guessed."
+  "notes": "Live PDM pred is the microphone, not the flash/UART clip. No host interpreter comparison. Firmware default is nsx-audio HFRC2_ADJ 16 kHz hop 320. peak= staying ~0 means the MEMS is silent or on the other L/R edge (HAL rebuild: -DKWS_PDM_USE_NSX_AUDIO=OFF -DKWS_PDM_LR_SWAP=1). MEMS part, header, and VDDH2 voltage are not guessed."
 }

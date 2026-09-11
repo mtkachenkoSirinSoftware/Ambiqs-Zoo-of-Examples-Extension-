@@ -8,11 +8,9 @@
 //
 // What this is NOT
 // ----------------
-// On the host, KwsCycleCount() returns 0 and every scope measures zero. That is
-// deliberate: EXPERIMENT_PLAN.md §3 forbids a host run producing anything that
-// could be read as a latency, cycle or stall figure, so the host build does not
-// produce a plausible-looking number that someone could later mistake for one.
-// A non-zero cycle count from this header means an Apollo510 produced it.
+// On the host, KwsCycleCount() returns 0 and every scope measures zero. A
+// host run must not look like a latency, cycle, or stall figure. A non-zero
+// cycle count from this header means an Apollo510 produced it.
 //
 // How it relates to heliaPROFILER
 // -------------------------------
@@ -20,7 +18,7 @@
 // generates itself, with no audio pipeline attached. This header measures the
 // *application*: frontend cost, quantisation cost, and the inference call as
 // the app actually issues it. They answer different questions and neither
-// substitutes for the other. See docs/runtime_integration.md.
+// substitutes for the other.
 #ifndef KWS_PROFILE_H_
 #define KWS_PROFILE_H_
 

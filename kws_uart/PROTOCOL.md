@@ -31,7 +31,7 @@ A header CRC exists so a corrupt `PAYLOAD_LEN` cannot stall the decoder.
 | `0x01` | `START_STREAM` | none |
 | `0x02` | `AUDIO_BLOCK` | 320 × int16 LE = 640 B (one 20 ms hop) |
 | `0x03` | `END_STREAM` | none |
-| `0x04` | `RESET` | none (session rings; **not** helia `AllocateTensors`) |
+| `0x04` | `RESET` | none (session rings; not helia `AllocateTensors`) |
 
 MCU does **not** TX `PREDICTION` on this UART. Labels are SWO (`nsx view`).
 
@@ -42,17 +42,16 @@ Main-loop FIFO poll (`am_hal_uart_fifo_read`). NVIC UART IRQ off.
 
 Do not use `am_hal_uart_stream_*` / RX-DMA on this path.
 
-Host `stream_wav.py` uses `--dtr auto`: **high** on NSX CDC `0xCafe`/`0x4011`
-(usb_serial: without DTR the device ignores RX), **low** on J-Link VCP
-(otherwise the MCU resets). Baud 921600 8N1 on PRINT UART; CDC baud is a
-host-side number only. `--realtime` is optional: the MCU stores 1 s then infers.
+`stream_wav.py --dtr auto`: **high** on NSX CDC `0xCafe`/`0x4011` (`usb_serial`:
+without DTR the device ignores RX), **low** on J-Link VCP (otherwise the MCU
+resets). Baud 921600 8N1 on PRINT UART; CDC baud is a host-side number only.
 
-Optional `-DKWS_UART_USB_CDC=ON` carries the **same** `0xA51C` frames over
+Optional `-DKWS_UART_USB_CDC=ON` carries the same `0xA51C` frames over
 `nsx-usb`. Labels stay on SWO.
 
 ## USB RPC (optional, `-DKWS_UART_USB_RPC=ON`)
 
-Same 4-byte LE length prefix + nanopb `NsxRpcMessage` as neuralspotx
-`usb_rpc`. `INFER.input` is **32000** bytes (16000 × int16 LE). The handler
-is `KwsApp`, not the 5-class toy in `usb_rpc/src/nsx_rpc_dispatch.c`. SWO
-`pred=` is this firmware; do not compare `usb_rpc`'s toy class to `pred=go`.
+Same 4-byte LE length prefix + nanopb `NsxRpcMessage` as
+`neuralspotx/examples/usb_rpc`. `INFER.input` is **32000** bytes (16000 ×
+int16 LE). The handler is `KwsApp`. Stock `usb_rpc` maps INFER to five stub
+classes — do not compare that image to SWO `pred=`.

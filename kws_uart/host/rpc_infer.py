@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Send 1 s PCM as usb_rpc INFER to kws_uart (DTR=True, NSX CDC).
 
-Firmware must be built with ``-DKWS_UART_USB_RPC=ON``. The device runs
-``KwsApp`` and prints ``pred=`` on SWO. The USB response carries the same
-tfds class. This is **not** neuralspotx ``usb_rpc`` (5-class toy), **not**
-LiteRT on this host, and **not** GATE 3 by itself.
+Firmware: ``-DKWS_UART_USB_RPC=ON``. The device runs ``KwsApp`` and prints
+``pred=`` on SWO. USB carries the same tfds class. Stock
+``neuralspotx/examples/usb_rpc`` is a five-class stub on another image.
 
     python3 host/rpc_infer.py host/synthetic.wav --port /dev/ttyACM0
 """

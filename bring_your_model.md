@@ -1,12 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-# Bring your INT8 student (phase 5)
+# Swap an INT8 `.tflite`
 
-Demo A / pruneopt stays **outside** this tree. Here you only swap a finished
-`.tflite`. Do not patch `kws_model_data.cc` by hand.
+Do not patch `kws_model_data.cc` by hand.
 
 ```bash
-cd ambiq_kws_examples
-python3 tools/embed_model.py path/to/student_int8.tflite --check
+python3 tools/embed_model.py path/to/model.tflite --check
 # exit 0 → A or B; exit 2 → C (stop) or U (unstructured sidecar)
 ```
 
@@ -14,20 +12,22 @@ python3 tools/embed_model.py path/to/student_int8.tflite --check
 |---|---|---|
 | **A** | geometry + quant identity = shipping SHA `ae08012b…` | flash the default image |
 | **B** | `[1,49,10,1]→[1,12]` int8, different scale/SHA | embed + `nsx build` / flash |
-| **C** | wrong shape, dtype, class count, per-axis I/O quant | **stop** — firmware work, not a swap |
+| **C** | wrong shape, dtype, class count, or per-axis I/O quant | **stop** |
 
-Keras cascade graphs from Demo A are almost always Class B. Re-embed; `kws_config.h`
-reads scales from the generated `kws_model_contract.h`.
+`kws_config.h` reads scales from the generated `kws_model_contract.h`.
 
-Frontend must stay `tf.signal` MFCC / `mfcc_tf` (30/20 ms). A student trained
-on `microfrontend` is a different identity — do not compare its accuracy to
-these examples without saying so.
+Frontend must stay `tf.signal` MFCC (30/20 ms). A model trained on
+`microfrontend` is a different identity — do not compare accuracy without
+saying so.
+
+This graph uses **Pad** and has no in-graph Softmax. Stock `kws_infer`
+registers Softmax and not Pad — dropping the C array into that example is
+not enough; their resolver and `kLabels[]` stay MLPerf.
 
 ## Embed into an example
 
 ```bash
-# after --check is A or B:
-python3 tools/embed_model.py path/to/student_int8.tflite \
+python3 tools/embed_model.py path/to/model.tflite \
     --out-dir kws_uart/model/generated
 # same file into kws_clip and kws_pdm if those images should match
 cd kws_uart
@@ -35,41 +35,29 @@ nsx build --app-dir .
 nsx flash --app-dir .
 ```
 
-`--out-dir kws_clip/model/generated` for the flash-clip image.
-helia-rt is read from `kws_clip/modules/helia-rt` after `nsx lock`, or pass
-`--helia-rt`.
+`--out-dir kws_clip/model/generated` for the flash-clip image. helia-rt is
+read from `kws_clip/modules/helia-rt` after `nsx lock`, or pass `--helia-rt`.
 
-## Embed into neuralspotx `kws_infer` (Class B)
+## Embed into `kws_infer`
 
-Do not hand-edit `neuralspotx/examples/kws_infer/src/kws_model_data.h`.
-Refresh it with the same script:
+Do not hand-edit `neuralspotx/examples/kws_infer/src/kws_model_data.h`:
 
 ```bash
-python3 tools/embed_model.py path/to/student_int8.tflite --check
-python3 tools/embed_model.py path/to/student_int8.tflite \
+python3 tools/embed_model.py path/to/model.tflite --check
+python3 tools/embed_model.py path/to/model.tflite \
     --kws-infer-header path/to/neuralspotx/examples/kws_infer/src/kws_model_data.h
 ```
 
-That header is their C array (`kws_model_data` / `kws_model_data_len`). It does
-**not** rewrite `kLabels[]` in their `main.cc`. That table stays **classic
-MLPerf** (`go` = index **11**) until they edit it. This zoo prints **tfds**
-order (`go` = index **1**). Same 12-way INT8, different name-at-index — see
-[`assets/LABELS.md`](assets/LABELS.md). Dummy-input `kws_infer` still does not
-run this PCM and is not GATE 3.
+That writes their C array only. It does **not** add `AddPad()`, and it does
+**not** rewrite `kLabels[]` (`go` = index **11** there, index **1** here).
+[`assets/LABELS.md`](assets/LABELS.md). Dummy-input `kws_infer` still does
+not run this PCM.
 
-## UART / clip vs LiteRT (Class B)
+## After class B
 
-`kws_uart/host/expected.json` and `kws_clip/host/expected.json` are **shipping**
-identity (`ae08012b…`, `pred=go` on `synthetic`). After a Class B embed they
-are stale.
+`kws_uart/host/expected.json` and `kws_clip/host/expected.json` are the
+**shipping** identity (`ae08012b…`, `pred=go` on `synthetic`). Compare last
+raw argmax on **identical PCM** against an interpreter loaded with **this**
+SHA. No host peak-norm. Labels on SWO, not UART TX.
 
-Compare last **raw argmax** on **identical PCM** against LiteRT loaded with
-**this** student SHA — not against the shipping JSON. Same WAV, no host
-peak-norm. MCU labels are SWO (`nsx view`), not UART TX.
-
-PDM `live pred=` is still not GATE 3 after a model swap.
-
-## Not in this drop
-
-Prune notebooks, Optuna, SNR, ALSA host-mic, unstructured / Tucker sidecars
-(Class U unless `--allow-unstructured`).
+PDM `live pred=` is still the microphone after a swap.

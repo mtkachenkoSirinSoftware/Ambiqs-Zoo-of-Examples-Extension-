@@ -8,9 +8,7 @@
 
 namespace kws {
 
-// tfds speech_commands label order, taken from
-// optimizationExperiments/src/pruneopt/data/gsc.py (LABELS). This is NOT the
-// classic MLPerf ordering — see docs/model_contract.md.
+// tfds speech_commands label order. Not classic MLPerf — see assets/LABELS.md.
 const char* const kLabels[KWS_NUM_CLASSES] = {
     "down", "go", "left", "no", "off", "on",
     "right", "stop", "up", "yes", "_silence_", "_unknown_"};

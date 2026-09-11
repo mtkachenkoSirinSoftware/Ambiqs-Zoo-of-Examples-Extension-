@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // kws_pdm — EVB PDM MEMS through kws_core. Labels on SWO (`nsx view`).
-//
-// Live pred is not GATE 3 and not comparable to LiteRT on a GSC WAV.
+// Live pred is the microphone, not the flash/UART clip.
 // Preflight: neuralspotx audio_capture and/or AmbiqSuite pdm_rtt_stream.
 #include "app/kws_app.h"
 #include "audio/audio_source.h"
@@ -68,7 +67,7 @@ int main(void) {
 #if defined(KWS_PDM_USE_NSX_AUDIO)
   nsx_printf("pdm backend=nsx-audio hop=%u fs=16000 clk=HFRC2_ADJ (not pdm_fft PLL)\n",
              (unsigned)KWS_AUDIO_BLOCK_SAMPLES);
-  nsx_printf("gpio clk=%u data=%u  (BSP; audio_capture README onboard-mic claim unverified here)\n",
+  nsx_printf("gpio clk=%u data=%u\n",
              (unsigned)KWS_PDM_CLK_GPIO, (unsigned)KWS_PDM_DATA_GPIO);
 #else
   nsx_printf("pdm backend=hal clk_out=%u fs=%u osr=%u gpio clk=%u data=%u lr_swap=%d\n",
@@ -76,7 +75,7 @@ int main(void) {
              (unsigned)KWS_PDM_CLK_GPIO, (unsigned)KWS_PDM_DATA_GPIO, (int)KWS_PDM_LR_SWAP);
 #endif
   nsx_printf("model sha256=%.12s\n", KWS_MODEL_SHA256);
-  nsx_printf("pred is live PDM, not GATE 3, not a GSC clip, not hpx profile\n");
+  nsx_printf("pred is live PDM (microphone, not the flash/UART clip)\n");
 #if defined(KWS_PDM_RTT_PCM)
   nsx_printf("rtt ch1=PCM 16kHz int16 hop=%u (not labels; labels on SWO)\n",
              (unsigned)KWS_AUDIO_BLOCK_SAMPLES);

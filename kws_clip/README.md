@@ -1,23 +1,26 @@
-# kws_clip — 1 s flash PCM → MFCC → heliaRT on Apollo510
+# kws_clip
 
-Always-on KWS on a **known** 1 s clip stored in flash. Labels print on **SWO**
-(`nsx view`), same transport as `neuralspotx/examples/kws_infer`.
+Flash a known 1 s clip, run MFCC + heliaRT, print the class on **SWO**
+(`nsx view`). Same debug transport as `neuralspotx/examples/kws_infer`.
 
-This is not dummy-input `kws_infer` (zeros / PRNG into the tensor). The PCM
-is the GATE-4 golden `synthetic` clip (16 kHz mono int16, 16000 samples). Host
-LiteRT on that PCM predicts **`go`**. MCU `pred=` is comparable only on this
-PCM — not a spoken GSC file, not PDM. Names are **tfds** order (`go` = index
-1). `kws_infer` prints MLPerf order (`go` = index 11). See
-[`../assets/LABELS.md`](../assets/LABELS.md).
+This is not dummy-input `kws_infer` (zeros / PRNG). The PCM is `synthetic`
+(16 kHz mono int16, 16000 samples). On that buffer the host interpreter
+predicts **`go`** (tfds index 1). See [`../assets/LABELS.md`](../assets/LABELS.md).
+
+Demonstrates:
+
+- `nsx_system_init` (LP, cache, ITM, SpotMgr)
+- heliaRT Invoke on a real MFCC tensor
+- `NsxPmuProfiler` per-layer CSV (`NSX_PMU_PRESET_ML_DEFAULT`)
 
 ## Hardware
 
 Apollo510 EVB + J-Link. No USB-UART, no MEMS.
 
-## Build
+## Build & Run
 
 ```bash
-cd ambiq_kws_examples/kws_clip
+cd kws_clip
 nsx lock      --app-dir .
 nsx configure --app-dir .
 nsx build     --app-dir .
@@ -25,87 +28,69 @@ nsx flash     --app-dir .
 nsx view      --app-dir .
 ```
 
-Regenerate embedded arrays (optional; CMake does this if they are missing):
+Regenerate embedded arrays if missing (`make embed`, or CMake does it).
+
+Host check (no board):
 
 ```bash
-make embed
+python3 host/test_clip_identity.py
 ```
 
-Host identity check (no board):
-
-```bash
-cmake -S . -B build-host && ctest --test-dir build-host --output-on-failure
-# or: python3 host/test_clip_identity.py
-```
-
-## Expected output (SWO)
+## Expected output
 
 ```
 kws_clip runtime=helia-rt arena_used=<N>
 perf_mode=LOW cpu_hz=96000000
 clip=synthetic n=16000 sha256=341c766cf618
-model sha256=ae08012b5a5d  (host LiteRT pred on this PCM: see host/expected.json)
+model sha256=ae08012b5a5d
 labels=tfds index 1=go (not kws_infer MLPerf index 11=go); assets/LABELS.md
 pred=go score=0.980 fired=0|1 invoke_cycles=<DWT> invoke_us=<CYCCNT/cpu_hz>
-  invoke_us = CYCCNT / cpu_hz (see perf_mode=); not hpx profile
 --- Per-Layer PMU ---
-  model-only, this binary; not always-on milliwatts; not hpx profile; last Invoke on synthetic PCM
 "Layer","Op","ARM_PMU_MVE_INST_RETIRED",...
 dwt_cycles=<N> pmu_cycles=<N> inst_retired=<N>
-  pmu_profiling events on a second Invoke of the same tensor; ...
 ```
 
-| Line | What it is |
+| Line | Meaning |
 |---|---|
-| `pred=go` | last raw argmax; must match `host/expected.json` (tfds index 1) |
-| `fired=` | recognizer (smooth / threshold / debounce); not GATE 3 |
-| `invoke_cycles=` / `invoke_us=` | DWT of the **first** `Invoke` / CYCCNT÷`cpu_hz`; not `hpx profile` |
-| `--- Per-Layer PMU ---` | `NSX_PMU_PRESET_ML_DEFAULT` CSV for that first Invoke; **model-only, this binary**; not always-on milliwatts |
-| `dwt_cycles=` / `pmu_cycles=` | DWT CYCCNT vs `ARM_PMU_CPU_CYCLES` on a **second** Invoke of the same tensor (`pmu_profiling` events). A mismatch is a fact, not a bug |
-| `arena_used=` | target allocator; host reference kernel used 12352 B as a lower bound |
+| `pred=go` | last raw argmax on this clip (must match `host/expected.json`) |
+| `fired=` | recognizer (smooth / threshold / debounce), not the raw argmax |
+| `invoke_cycles=` / `invoke_us=` | DWT of the first `Invoke`; µs = CYCCNT ÷ printed `cpu_hz` |
+| `--- Per-Layer PMU ---` | ML_DEFAULT CSV for that Invoke |
+| `dwt_cycles=` / `pmu_cycles=` | DWT vs `ARM_PMU_CPU_CYCLES` on a **second** Invoke of the same tensor (`pmu_profiling` events). A mismatch is a fact, not a bug |
 
-`score=` on the MCU is softmax of int8 logits; it can differ in the fourth
-decimal from the host LiteRT float. The **name** `go` is the check.
+`score=` is softmax of int8 logits. The **name** `go` is the check.
+
+## How it works
+
+```c
+NSX_TRY(nsx_system_init(&kCfg), "System init failed\n");
+nsx_itm_printf_enable();
+// Play 50 hops of 320 samples from flash, then FlushInference.
+```
+
+Tensor arena is `NSX_MEM_FAST_BSS` (TCM), `alignas(16)`, 32 KiB.
 
 ## Key files
 
 | File | Purpose |
 |---|---|
-| `src/main.cc` | `nsx_system_init`, play clip, SWO `pred=` / PMU CSV |
-| `src/nsx_pmu_profiler.cc` | TFLM `MicroProfilerInterface` (kws_infer shape) |
-| `src/flash_clip_source.c` | AudioSource wrapper around `FlashClipPlayer` |
+| `src/main.cc` | init, play clip, SWO |
+| `src/nsx_pmu_profiler.cc` | TFLM `MicroProfilerInterface` (same shape as `kws_infer`) |
+| `src/flash_clip_source.c` | `AudioSource` over the flash player |
 | `../kws_core/` | frontend, quantize, helia runner, recognizer |
-| `audio/generated/` | embedded PCM + SHA256 |
-| `model/generated/` | embedded `.tflite` + contract |
-| `host/expected.json` | host LiteRT identity for this PCM |
-| `nsx.yml` / `nsx.lock` | helia-rt 1.19.0 + ns-cmsis-nn 7.31.0 pins |
+| `host/expected.json` | interpreter identity for this PCM |
+| `nsx.yml` / `nsx.lock` | helia-rt 1.19.0, ns-cmsis-nn 7.31.0 |
 
-## Linked image (host, not latency)
+## Model
 
-`nsx build` produces `build/apollo510_evb/kws_clip` (ELF) and `.bin`. One
-successful link on this tree:
+`assets/depgraph_r060_kd_int8.tflite`  
+SHA256 `ae08012b5a5dd1fd59673bba3d4b1d1c43d7cd1f410537824d7eb6c2edb40fb7`
 
-| Segment | Bytes |
-|---|---|
-| `.text` | 338096 |
-| `.data` | 5404 |
-| `.bss` | 502496 |
-| `.bin` | 336 KiB |
+To swap a class-B INT8 file: [`../bring_your_model.md`](../bring_your_model.md).
+After a swap, compare MCU vs interpreter on **that** SHA, not the shipping JSON.
 
-That is the **linked image**, not Apollo510 latency, not MACs, not host ms.
-`pred=` on SWO still needs `nsx flash` + `nsx view` on an EVB.
-
-If `nsx configure` fails with `file(WRITE /dev/stdout)` and no TTY, wrap it:
+If `nsx configure` has no TTY:
 
 ```bash
 script -q -e -c 'nsx configure --app-dir .' /tmp/nsx-configure.log
 ```
-
-## Model
-
-`assets/depgraph_r060_kd_int8.tflite` SHA256
-`ae08012b5a5dd1fd59673bba3d4b1d1c43d7cd1f410537824d7eb6c2edb40fb7`.
-helia-rt `cfab1523` (v1.19.0), ns-cmsis-nn `b386770a` (v7.31.0).
-
-A Demo A student is usually **Class B**: see [`../bring_your_model.md`](../bring_your_model.md).
-After a swap, `host/expected.json` is stale — LiteRT must use **that** SHA.

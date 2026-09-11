@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Embed a 16 kHz mono PCM clip as a C array for the flash-clip AudioSource.
+"""Embed a 16 kHz mono PCM clip as a C array for kws_clip.
 
-Default source is tests/golden/synthetic.txt (committed, 1 s, GATE-4 golden).
-A spoken WAV from the validation corpus can replace it:
+Default source is ``kws_core/tests/golden/synthetic.txt`` (1 s identity clip).
 
-  python3 tools/embed_clip.py --wav host/corpus/yes.wav
+    python3 tools/embed_clip.py --wav path/to/clip.wav
 
-Writes audio/generated/kws_clip_data.h and kws_clip_data.cc. The .cc is
-gitignored (mechanical hex); the header carries SHA256 + sample count.
+Writes ``kws_clip/audio/generated/kws_clip_data.h`` and ``kws_clip_data.cc``.
+The ``.cc`` is gitignored (mechanical hex); the header carries SHA256 + count.
 """
 from __future__ import annotations
 

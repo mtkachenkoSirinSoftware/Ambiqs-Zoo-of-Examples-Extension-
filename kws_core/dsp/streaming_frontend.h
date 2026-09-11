@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Incremental MFCC frontend.
 //
-// Reproduces, stage for stage, the frontend the model was trained with
-// (optimizationExperiments/src/pruneopt/features/mfcc_tf.py):
+// Matches the frontend the model was trained with (tf.signal MFCC):
 //
 //   x            int16 PCM
 //   x / max(x)   peak normalisation over the whole 1 s clip  <-- NOT causal
@@ -39,12 +38,12 @@ class StreamingFrontend {
 
   // Applies the clip-wide peak normaliser, log and DCT to the newest
   // KWS_NUM_FRAMES mel frames. `clip_peak` is ClipPeak() over the same 1 s
-  // window -- the SIGNED maximum, matching tf.reduce_max in mfcc_tf.py.
+  // window -- the SIGNED maximum, matching training tf.reduce_max.
   // Writes KWS_NUM_FRAMES * KWS_NUM_MFCC floats, frame-major.
   // Returns false when the ring does not yet hold a full window.
   bool ComputeMfccWindow(const FeatureRingBuffer& ring, float clip_peak, float* out) const;
 
-  // Non-streaming path, used only by the golden test (spec §21) to prove the
+  // Non-streaming path, used only by the golden test to prove the
   // incremental path agrees with a straight full-window computation.
   bool ComputeMfccWindowDirect(const AudioSample* clip, size_t clip_samples, float* out) const;
 

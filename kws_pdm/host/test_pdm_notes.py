@@ -17,11 +17,11 @@ HEADER = PDM / "audio" / "pdm_pcm16.h"
 
 
 class PdmNotes(unittest.TestCase):
-    def test_expected_refuses_gate3(self) -> None:
+    def test_expected_has_no_pred(self) -> None:
         exp = json.loads(EXPECTED.read_text())
         self.assertEqual(exp["measurement"], "kws_pdm_live_mic")
         self.assertNotIn("pred", exp)
-        self.assertIn("not GATE 3", exp["notes"])
+        self.assertIn("microphone", exp["notes"])
         self.assertEqual(exp["model"]["sha256"], SHIPPING)
         self.assertEqual(exp["model"]["sha256"], hashlib.sha256(TFLITE.read_bytes()).hexdigest())
         self.assertEqual(exp["pdm"]["clk_out_hz"], 2048000)
@@ -65,7 +65,7 @@ class PdmNotes(unittest.TestCase):
         self.assertIn("Channel 1 is hop PCM", rtt_md)
         self.assertIn("not a label", rtt_md.lower())
 
-    def test_rtt_pcm_dump_is_ch1_16khz_not_gate3(self) -> None:
+    def test_rtt_pcm_dump_is_ch1_16khz(self) -> None:
         import importlib.util
 
         path = PDM / "host" / "rtt_pcm_dump.py"
@@ -76,7 +76,7 @@ class PdmNotes(unittest.TestCase):
         spec.loader.exec_module(mod)
         self.assertEqual(mod.CHANNEL, 1)
         self.assertEqual(mod.SAMPLE_RATE_HZ, 16000)
-        self.assertIn("not GATE 3", mod.NOTES)
+        self.assertIn("not a label", mod.NOTES)
         self.assertIn("not LiteRT", mod.NOTES)
         dummy = b"\x00\x01\xff\x7f"
         wav = mod.pack_wav_pcm16(dummy)

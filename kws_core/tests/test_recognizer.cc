@@ -34,7 +34,7 @@ TEST(Recognizer, SilentStreamNeverFires) {
   EXPECT_EQ(r.events_fired(), 0u);
 }
 
-// Spec §28: _silence_ / _unknown_ are handled, not reported as keywords.
+// _silence_ / _unknown_ are handled, not reported as keywords.
 TEST(Recognizer, UnknownNeverFiresEvenWhenConfident) {
   Recognizer r;
   r.Init();
@@ -69,7 +69,7 @@ TEST(Recognizer, RequiresConsistentDetectionsBeforeFiring) {
   ASSERT_GE(fired_at, 1);
 }
 
-// The headline requirement of §28: one spoken keyword -> one event.
+// One spoken keyword -> one event.
 TEST(Recognizer, OneKeywordProducesExactlyOneEvent) {
   Recognizer r;
   r.Init();

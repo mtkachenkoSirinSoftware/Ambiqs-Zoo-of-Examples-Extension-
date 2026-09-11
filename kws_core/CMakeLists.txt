@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Standalone host build of kws_core (no UART HAL, no NSX, no EVB).
 #
-#   cmake -S ambiq_kws_examples/kws_core -B ambiq_kws_examples/kws_core/build
-#   cmake --build ambiq_kws_examples/kws_core/build -j
-#   ctest --test-dir ambiq_kws_examples/kws_core/build --output-on-failure
+#   cmake -S . -B build
+#   cmake --build build -j
+#   ctest --test-dir build --output-on-failure
 cmake_minimum_required(VERSION 3.16)
 project(kws_core C CXX)
 

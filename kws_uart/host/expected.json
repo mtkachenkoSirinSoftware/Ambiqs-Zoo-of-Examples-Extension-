@@ -11,7 +11,7 @@
   "model": {
     "file": "assets/depgraph_r060_kd_int8.tflite",
     "sha256": "ae08012b5a5dd1fd59673bba3d4b1d1c43d7cd1f410537824d7eb6c2edb40fb7",
-    "frontend": "pruneopt.features.mfcc_tf"
+    "frontend": "tf.signal_mfcc"
   },
   "pred": "go",
   "label": 1,
