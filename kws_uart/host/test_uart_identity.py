@@ -59,6 +59,13 @@ class UartIdentity(unittest.TestCase):
         self.assertIn("KwsPrintPerfBanner", main)
         self.assertIn("KwsPrintInvokeTail", main)
         self.assertIn("labels=tfds index 1=go", main)
+        self.assertIn("usb_rpc INFER is a 5-class toy", main)
+        cmake = (UART / "CMakeLists.txt").read_text()
+        self.assertIn("KWS_UART_USB_CDC", cmake)
+        self.assertIn("KWS_UART_USB_RPC", cmake)
+        yml = (UART / "nsx.yml").read_text()
+        self.assertIn("nsx-usb", yml)
+        self.assertIn("nsx-nanopb", yml)
 
 
 if __name__ == "__main__":

@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Send a 1 s WAV to kws_uart over USB-UART (FIFO-poll firmware).
+"""Send a 1 s WAV to kws_uart (PRINT UART or nsx-usb CDC).
 
 The MCU never parses WAV. This tool decodes to mono 16 kHz PCM16, pads or
 truncates to exactly 1 s, frames it (PROTOCOL.md), and bursts it into MCU RAM.
-Firmware infers after END. Labels are on SWO (`nsx view`), not this UART.
+Firmware infers after END. Labels are on SWO (`nsx view`), not this port.
 
 Do not peak-normalise. Training and firmware both divide by signed max(x) of
 the 1 s window.
 
-CDC-ACM on J-Link-OB treats DTR as MCU reset. ``open_pcm_serial`` holds DTR/RTS
-low before ``open()``.
+Two inverted DTR contracts (usb_serial vs J-Link-OB):
+
+* NSX CDC VID/PID ``0xCafe``/``0x4011`` — ``DTR=True`` or the device ignores RX
+  (neuralspotx ``usb_serial``).
+* J-Link VCP / PRINT UART — hold DTR/RTS **low** or the MCU resets.
+
+``--dtr auto`` (default) picks high for NSX CDC and low otherwise.
+``--list-ports`` prints the classification. Pick the right port.
 """
 from __future__ import annotations
 
@@ -29,6 +35,10 @@ MAGIC = 0xA51C
 VERSION = 1
 T_START, T_AUDIO, T_END, T_RESET = 0x01, 0x02, 0x03, 0x04
 T_STATUS, T_PREDICTION, T_ACK, T_NACK = 0x81, 0x82, 0x83, 0x84
+
+NSX_CDC_VID = 0xCAFE
+NSX_CDC_PID = 0x4011
+SEGGER_VID = 0x1366
 
 LABELS = [
     "down",
@@ -61,6 +71,65 @@ def encode(msg_type: int, seq: int, payload: bytes = b"") -> bytes:
     header = struct.pack("<HBBHH", MAGIC, VERSION, msg_type, seq, len(payload))
     header += struct.pack("<H", crc16_ccitt(header))
     return header + payload + struct.pack("<H", crc16_ccitt(payload))
+
+
+def classify_port(
+    vid: int | None,
+    pid: int | None,
+    manufacturer: str = "",
+    product: str = "",
+) -> str:
+    """Return ``nsx-cdc``, ``jlink-vcp``, or ``other``.
+
+    Parameters
+    ----------
+    vid, pid : int or None
+        USB identifiers.
+    manufacturer, product : str
+        Port strings from ``list_ports``.
+
+    Returns
+    -------
+    str
+        Port kind. NSX CDC is Cafe:4011 as in ``usb_serial``.
+    """
+    vid_i = int(vid or 0)
+    pid_i = int(pid or 0)
+    if vid_i == NSX_CDC_VID and pid_i == NSX_CDC_PID:
+        return "nsx-cdc"
+    blob = f"{manufacturer} {product}".lower()
+    if vid_i == SEGGER_VID or "segger" in blob or "j-link" in blob or "jlink" in blob:
+        return "jlink-vcp"
+    return "other"
+
+
+def dtr_level(kind: str, override: str = "auto") -> bool:
+    """Return True if DTR should be asserted.
+
+    Parameters
+    ----------
+    kind : str
+        ``classify_port`` result.
+    override : str
+        ``auto``, ``low``, or ``high``.
+    """
+    if override == "high":
+        return True
+    if override == "low":
+        return False
+    return kind == "nsx-cdc"
+
+
+def list_pcm_ports() -> list[tuple[str, str, str]]:
+    """Return ``(device, kind, description)`` rows from pyserial."""
+    import serial.tools.list_ports
+
+    rows: list[tuple[str, str, str]] = []
+    for p in serial.tools.list_ports.comports():
+        kind = classify_port(p.vid, p.pid, p.manufacturer or "", p.product or "")
+        desc = p.description or ""
+        rows.append((p.device, kind, desc))
+    return rows
 
 
 def load_wav(path: pathlib.Path) -> bytes:
@@ -110,8 +179,8 @@ def frames_for_pcm(pcm: bytes) -> list[bytes]:
     return out
 
 
-def open_pcm_serial(port: str, baud: int):
-    """Open the PCM VCOM without pulsing DTR/RTS (CDC-ACM reset)."""
+def open_pcm_serial(port: str, baud: int, dtr: bool = False):
+    """Open the PCM VCOM with an explicit DTR/RTS polarity."""
     import serial
 
     ser = serial.Serial()
@@ -120,12 +189,12 @@ def open_pcm_serial(port: str, baud: int):
     ser.timeout = 0.05
     ser.dsrdtr = False
     ser.rtscts = False
-    ser.dtr = False
+    ser.dtr = dtr
     ser.rts = False
     ser.open()
-    ser.dtr = False
+    ser.dtr = dtr
     ser.rts = False
-    time.sleep(0.2)
+    time.sleep(0.2 if not dtr else 0.3)
     return ser
 
 
@@ -137,12 +206,36 @@ def main() -> int:
     ap.add_argument("--port", default="/dev/ttyUSB0")
     ap.add_argument("--baud", type=int, default=921600)
     ap.add_argument(
+        "--dtr",
+        choices=("auto", "low", "high"),
+        default="auto",
+        help="auto: high on NSX CDC 0xCafe/0x4011, low on J-Link VCP",
+    )
+    ap.add_argument(
+        "--list-ports",
+        action="store_true",
+        help="print J-Link VCP vs NSX CDC (usb_serial: pick the right port)",
+    )
+    ap.add_argument(
         "--realtime",
         action="store_true",
         help="pace blocks at 20 ms (optional; MCU stores first, then infers)",
     )
     ap.add_argument("--dry-run", action="store_true", help="frame it but open no port")
     args = ap.parse_args()
+
+    if args.list_ports:
+        try:
+            rows = list_pcm_ports()
+        except ImportError:
+            raise SystemExit("pyserial not installed")
+        if not rows:
+            print("no serial ports")
+            return 0
+        for dev, kind, desc in rows:
+            dtr = "high" if dtr_level(kind, "auto") else "low"
+            print(f"{dev:24} {kind:10} dtr={dtr}  {desc}")
+        return 0
 
     if not args.wav:
         raise SystemExit("pass one or more WAV paths (16 kHz mono int16, 1 s)")
@@ -160,7 +253,22 @@ def main() -> int:
             import serial  # noqa: F401
         except ImportError:
             raise SystemExit("pyserial not installed")
-        ser = open_pcm_serial(args.port, args.baud)
+        kind = "other"
+        try:
+            import serial.tools.list_ports
+
+            for p in serial.tools.list_ports.comports():
+                if p.device == args.port:
+                    kind = classify_port(p.vid, p.pid, p.manufacturer or "", p.product or "")
+                    break
+        except Exception:  # noqa: BLE001
+            kind = "other"
+        dtr = dtr_level(kind, args.dtr)
+        print(
+            f"port={args.port} kind={kind} dtr={'high' if dtr else 'low'} "
+            "(NSX CDC=0xCafe/0x4011 needs DTR; J-Link VCP needs DTR low)"
+        )
+        ser = open_pcm_serial(args.port, args.baud, dtr=dtr)
 
     try:
         for name, pcm in clips:

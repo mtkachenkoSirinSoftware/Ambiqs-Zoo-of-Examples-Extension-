@@ -74,6 +74,16 @@ class ClipIdentity(unittest.TestCase):
         self.assertIn("KwsPrintPerfBanner", main)
         self.assertIn("PrintClipPmuCsv", main)
         self.assertIn("labels=tfds index 1=go", main)
+        profiler = (CLIP / "src" / "nsx_pmu_profiler.cc").read_text()
+        self.assertIn("ARM_PMU_CPU_CYCLES", profiler)
+        self.assertIn("ARM_PMU_INST_RETIRED", profiler)
+        runner = (ZOO / "kws_core" / "model" / "backends" / "runner_helia_rt.cc").read_text()
+        self.assertIn("dwt_cycles=", runner)
+        self.assertIn("pmu_cycles=", runner)
+        self.assertIn("inst_retired=", runner)
+        self.assertIn("model-only, this binary", runner)
+        self.assertIn("A mismatch is a fact, not a bug", runner)
+        self.assertIn("NSX_PMU_PRESET_ML_DEFAULT", runner)
 
 
 if __name__ == "__main__":

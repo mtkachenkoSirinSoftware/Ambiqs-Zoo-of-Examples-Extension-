@@ -117,8 +117,9 @@ class ModelRunner {
   // fact, not a latency one, so it is safe to publish as measured.
   static uint32_t arena_used_bytes();
 
-  // kws_clip only: per-layer PMU CSV after Invoke (no-op without KWS_CLIP_PMU).
-  // Not hpx profile and not always-on hop time.
+  // kws_clip only: per-layer ML_DEFAULT CSV plus pmu_profiling
+  // (CPU_CYCLES + INST_RETIRED) on a second Invoke of the same tensor.
+  // No-op without KWS_CLIP_PMU. Not hpx profile, not always-on milliwatts.
   static void PrintClipPmuCsv();
 
   // Backend-specific status from the last failed call; 0 when clean.

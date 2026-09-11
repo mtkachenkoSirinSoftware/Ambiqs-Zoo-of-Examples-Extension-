@@ -97,13 +97,23 @@ REQUIRED = (
     "kws_uart/nsx.lock",
     "kws_uart/src/main.cc",
     "kws_uart/host/stream_wav.py",
+    "kws_uart/host/rpc_infer.py",
+    "kws_uart/host/rpc_wire.py",
+    "kws_uart/rpc/nsx_rpc.proto",
+    "kws_uart/rpc/nsx_rpc.pb.h",
+    "kws_uart/rpc/nsx_rpc.pb.c",
     "kws_uart/host/synthetic.wav",
     "kws_uart/PROTOCOL.md",
     "kws_pdm/nsx.yml",
     "kws_pdm/nsx.lock",
     "kws_pdm/src/main.cc",
     "kws_pdm/src/nsx_audio_source.c",
+    "kws_pdm/src/kws_pdm_rtt.c",
     "kws_pdm/host/nsx_audio_default.md",
+    "kws_pdm/host/rtt_pcm_dump.py",
+    "kws_pdm/rtt/README.md",
+    "kws_pdm/rtt/LICENSE.md",
+    "kws_pdm/rtt/RTT/SEGGER_RTT.c",
 )
 
 

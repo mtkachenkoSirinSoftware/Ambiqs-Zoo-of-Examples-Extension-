@@ -17,6 +17,12 @@ index 11). See [`../assets/LABELS.md`](../assets/LABELS.md).
 
 Apollo510 EVB + J-Link (flash + SWO) + USB-UART to the COM/PRINT port.
 
+J-Link USB (`1366:1024`) is **not** the NSX CDC. Optional CDC / USB RPC
+needs the EVB **device** USB as well; `lsusb` must show `0xCafe`/`0x4011`
+before `stream_wav.py` / `rpc_infer.py` can open `/dev/ttyACM*`. DTR=True
+on that port (usb_serial). Without that cable the firmware still prints
+its identity on SWO; the host path is not a host measurement of CDC.
+
 ## Build
 
 ```bash
@@ -31,7 +37,35 @@ nsx view      --app-dir .
 In a second terminal, after SWO shows `uart poll-fifo`:
 
 ```bash
+python3 host/stream_wav.py --list-ports
 python3 host/stream_wav.py host/synthetic.wav --port /dev/ttyUSB0 --baud 921600
+```
+
+`--list-ports` classifies **J-Link VCP** vs **NSX CDC** (`0xCafe`/`0x4011`,
+same as neuralspotx `usb_serial` — pick the right port). `--dtr auto`
+(default) asserts DTR on the NSX CDC and holds it **low** on J-Link / PRINT
+UART. Do not use pyserial's default DTR pulse on the J-Link-OB.
+
+Optional **nsx-usb CDC** (same `0xA51C` protocol, labels still on SWO). This
+`nsx` has no CMake-arg passthrough:
+
+```bash
+script -q -e -c 'cmake -DKWS_UART_USB_CDC=ON build/apollo510_evb' /tmp/cmake-uart-cdc.log
+nsx build --app-dir .
+nsx flash --app-dir .
+# plug the EVB **device** USB as well as J-Link; DTR=True
+python3 host/stream_wav.py host/synthetic.wav --port /dev/ttyACM0 --dtr high
+```
+
+Optional **USB RPC INFER** (16000 int16 → `KwsApp`). This is **not** the
+neuralspotx `usb_rpc` 5-class toy:
+
+```bash
+script -q -e -c 'cmake -DKWS_UART_USB_CDC=OFF -DKWS_UART_USB_RPC=ON build/apollo510_evb' /tmp/cmake-uart-rpc.log
+nsx build --app-dir .
+nsx flash --app-dir .
+python3 host/rpc_infer.py host/synthetic.wav
+# SWO pred=go is the identity; USB class_id=1 label=go is the same argmax
 ```
 
 Host identity (no board):
@@ -41,8 +75,8 @@ make embed      # synthetic.wav + embedded .tflite
 make test-host
 ```
 
-`open_pcm_serial` holds **DTR/RTS low** before `open()`. pyserial's default DTR
-pulse resets CDC-ACM / J-Link-OB mid-stream.
+`open_pcm_serial` uses `--dtr`. J-Link-OB / PRINT UART needs **low** or the
+MCU resets. NSX CDC (`usb_serial`) needs **high** or the device ignores RX.
 
 If `nsx configure` fails with `file(WRITE /dev/stdout)` and no TTY:
 
@@ -71,9 +105,27 @@ pred=go score=0.980 fired=0|1 invoke_cycles=<DWT> invoke_us=<CYCCNT/cpu_hz>
 | `invoke_cycles=` / `invoke_us=` | DWT of **this** `Invoke` / CYCCNT÷`cpu_hz`; not `hpx profile` |
 | `dropped=` | samples past 16000 discarded at ingest |
 
+CDC / RPC banners replace the PRINT-UART line:
+
+```
+uart cdc nsx-usb 0xA51C; DTR=True; VID/PID 0xCafe/0x4011; PCM on CDC; labels on SWO
+```
+
+```
+usb rpc INFER=16000 int16 KwsApp; DTR=True; VID/PID 0xCafe/0x4011; labels on SWO
+  this INFER is kws_core; neuralspotx usb_rpc INFER is a 5-class toy on another image
+usb rpc ready (wait for host DTR)
+```
+
 `score=` on the MCU is softmax of int8 logits; the **name** `go` is the check.
 
 Do not `tee` the audio UART for labels. The MCU does not TX `T_PREDICTION`.
+
+SWO `pred=` is **this** firmware (`kws_uart` / `kws_clip`). neuralspotx
+`usb_rpc` `INFER` is a **different image** whose handler sums bytes into five
+toy classes (`idle`/`walk`/`run`/`gesture`/`unknown`). Do not compare that
+toy class to `pred=go`. The optional `-DKWS_UART_USB_RPC=ON` build of
+**this** tree runs `KwsApp` on 16000 int16 and still prints `pred=` on SWO.
 
 ## Framing
 
@@ -89,7 +141,9 @@ stores RAM first, then plays through the same `FlashClipPlayer` as `kws_clip`.
 | `src/apollo510_uart.cc` | FIFO poll `AudioSource`; NVIC UART IRQ off |
 | `protocol/` | MAGIC framing + CRC-16/CCITT-FALSE |
 | `audio/` | 1 s RAM clip + player |
-| `host/stream_wav.py` | WAV → frames; DTR/RTS low |
+| `host/stream_wav.py` | WAV → frames; `--list-ports`; `--dtr {auto,low,high}` |
+| `host/rpc_infer.py` | USB RPC INFER of 16000 int16; **not** the usb_rpc toy |
+| `rpc/` | nanopb `NsxRpcMessage`; input max 32000 B |
 | `host/expected.json` | host LiteRT identity for `synthetic.wav` |
 | `nsx.yml` / `nsx.lock` | helia-rt 1.19.0 + ns-cmsis-nn 7.31.0 pins |
 
@@ -104,16 +158,15 @@ After a swap, `host/expected.json` is stale — UART vs LiteRT uses **that** SHA
 
 ## Linked image (host, not latency)
 
-`nsx build` produces `build/apollo510_evb/kws_uart` (ELF) and `.bin`. One
-successful link on this tree:
+`nsx build` produces `build/apollo510_evb/kws_uart` (ELF) and `.bin`. Linked
+sizes on this tree (bytes), **not** Apollo510 latency:
 
-| Segment | Bytes |
-|---|---|
-| `.text` | 292760 |
-| `.data` | 2620 |
-| `.bss` | 505280 |
-| `.bin` | 289 KiB |
+| Image | `.text` | `.data` | `.bss` |
+|---|---|---|---|
+| PRINT UART (default) | 292760 | 2620 | 505280 |
+| `-DKWS_UART_USB_CDC=ON` | 317544 | 3260 | 511360 |
+| `-DKWS_UART_USB_RPC=ON` | 325008 | 3260 | 607672 |
 
-That is the **linked image**, not Apollo510 latency. `.text` is smaller than
-`kws_clip` because the 1 s PCM is not in flash — it arrives over UART into RAM.
-`pred=` on SWO still needs `nsx flash` + `nsx view` + `stream_wav.py`.
+`.text` is smaller than `kws_clip` because the 1 s PCM is not in flash — it
+arrives over UART/CDC/RPC into RAM. `pred=` on SWO still needs `nsx flash`
++ `nsx view` + `stream_wav.py` or `rpc_infer.py`.

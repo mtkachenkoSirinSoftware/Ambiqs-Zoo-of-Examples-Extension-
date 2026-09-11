@@ -14,10 +14,13 @@ void NsxPmuProfiler::Init(nsx_pmu_preset_e preset) {
   nsx_pmu_init(&pmu_cfg_);
   num_events_ = 0;
   initialized_ = true;
+  layer_hooks_ = true;
 }
 
+void NsxPmuProfiler::SetLayerHooks(bool on) { layer_hooks_ = on; }
+
 uint32_t NsxPmuProfiler::BeginEvent(const char* tag) {
-  if (!initialized_ || num_events_ >= kMaxLayers) {
+  if (!initialized_ || !layer_hooks_ || num_events_ >= kMaxLayers) {
     return 0;
   }
   int idx = num_events_++;
@@ -29,7 +32,8 @@ uint32_t NsxPmuProfiler::BeginEvent(const char* tag) {
 }
 
 void NsxPmuProfiler::EndEvent(uint32_t event_handle) {
-  if (!initialized_ || event_handle >= static_cast<uint32_t>(num_events_)) {
+  if (!initialized_ || !layer_hooks_ ||
+      event_handle >= static_cast<uint32_t>(num_events_)) {
     return;
   }
   uint32_t saved_cyccnt = DWT->CYCCNT;
@@ -42,6 +46,26 @@ void NsxPmuProfiler::EndEvent(uint32_t event_handle) {
 }
 
 void NsxPmuProfiler::ClearEvents() { num_events_ = 0; }
+
+void NsxPmuProfiler::BeginWholeInvokeMeasure() {
+  SetLayerHooks(false);
+  nsx_pmu_reset_config(&pmu_cfg_);
+  pmu_cfg_.api = &nsx_pmu_V1_0_0;
+  nsx_pmu_event_create(&pmu_cfg_.events[0], ARM_PMU_CPU_CYCLES, NSX_PMU_EVENT_COUNTER_SIZE_32);
+  nsx_pmu_event_create(&pmu_cfg_.events[1], ARM_PMU_INST_RETIRED, NSX_PMU_EVENT_COUNTER_SIZE_32);
+  nsx_pmu_init(&pmu_cfg_);
+  nsx_pmu_reset_counters();
+  dwt_start_ = DWT->CYCCNT;
+}
+
+void NsxPmuProfiler::EndWholeInvokeMeasure() {
+  dwt_cycles_ = DWT->CYCCNT - dwt_start_;
+  nsx_pmu_get_counters(&pmu_cfg_);
+  pmu_cycles_ = pmu_cfg_.counter[0].counterValue;
+  inst_retired_ = pmu_cfg_.counter[1].counterValue;
+  measured_ = true;
+  Init(NSX_PMU_PRESET_ML_DEFAULT);
+}
 
 void NsxPmuProfiler::PrintCsv() const {
   if (!initialized_ || num_events_ == 0) {

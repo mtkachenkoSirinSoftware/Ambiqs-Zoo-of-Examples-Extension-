@@ -12,6 +12,7 @@ embed: ## Identity WAV + embedded shipping tflite
 test-host: ## Framing, WAV identity, C++ decoder interop (no EVB)
 	python3 host/test_uart_identity.py
 	python3 host/test_stream_wav.py
+	python3 host/test_rpc_wire.py
 	cmake -S tests -B build-host
 	cmake --build build-host -j
 	ctest --test-dir build-host --output-on-failure

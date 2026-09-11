@@ -1,0 +1,13 @@
+# nanopb options file for nsx_rpc.proto
+# Sets static buffer sizes for all bytes/string fields so no dynamic
+# memory allocation is needed on device.
+
+# Inference input: 1 s of 16 kHz int16 = 32000 bytes (kws_core window).
+# Their usb_rpc toy used 256 bytes. This is the KWS clip, not the toy stub.
+NsxInferRequest.input           max_size:32000
+
+# Inference output label — short ASCII class name
+NsxInferResponse.label          max_size:32
+
+# Board name string
+NsxStatusResponse.board_name    max_size:32

@@ -11,6 +11,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from stream_wav import (  # noqa: E402
     BLOCK_SAMPLES,
     CLIP_SAMPLES,
+    NSX_CDC_PID,
+    NSX_CDC_VID,
+    classify_port,
+    dtr_level,
     encode,
     fit_clip_pcm16,
     frames_for_pcm,
@@ -82,6 +86,21 @@ class Frames(unittest.TestCase):
         )
         self.assertIn("16000 samples", r.stdout)
         self.assertIn("dry run", r.stdout)
+
+
+class PortsAndDtr(unittest.TestCase):
+    def test_nsx_cdc_is_cafe_4011_dtr_high(self) -> None:
+        self.assertEqual(NSX_CDC_VID, 0xCAFE)
+        self.assertEqual(NSX_CDC_PID, 0x4011)
+        self.assertEqual(classify_port(0xCAFE, 0x4011), "nsx-cdc")
+        self.assertTrue(dtr_level("nsx-cdc", "auto"))
+        self.assertFalse(dtr_level("jlink-vcp", "auto"))
+        self.assertTrue(dtr_level("jlink-vcp", "high"))
+        self.assertFalse(dtr_level("nsx-cdc", "low"))
+        self.assertEqual(classify_port(0x1366, 0x1024, "SEGGER", "J-Link"), "jlink-vcp")
+        src = Path(__file__).resolve().parent / "stream_wav.py"
+        self.assertIn("pick the right port", src.read_text())
+        self.assertIn("--dtr", src.read_text())
 
 
 if __name__ == "__main__":

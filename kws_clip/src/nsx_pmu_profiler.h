@@ -22,6 +22,17 @@ class NsxPmuProfiler : public tflite::MicroProfilerInterface {
   void PrintCsv() const;
   int num_events() const { return num_events_; }
 
+  // 4.1: second Invoke of the same tensor with pmu_profiling events.
+  // Layer CSV uses all 8 HW counters (ML_DEFAULT); those events cannot share
+  // an Invoke with ARM_PMU_CPU_CYCLES. A DWT vs pmu_cycles mismatch is a fact.
+  void SetLayerHooks(bool on);
+  void BeginWholeInvokeMeasure();
+  void EndWholeInvokeMeasure();
+  uint32_t dwt_cycles() const { return dwt_cycles_; }
+  uint32_t pmu_cycles() const { return pmu_cycles_; }
+  uint32_t inst_retired() const { return inst_retired_; }
+  bool whole_invoke_measured() const { return measured_; }
+
  private:
   struct LayerRecord {
     const char* tag;
@@ -32,6 +43,12 @@ class NsxPmuProfiler : public tflite::MicroProfilerInterface {
   LayerRecord layers_[kMaxLayers] = {};
   int num_events_ = 0;
   bool initialized_ = false;
+  bool layer_hooks_ = true;
+  bool measured_ = false;
+  uint32_t dwt_start_ = 0;
+  uint32_t dwt_cycles_ = 0;
+  uint32_t pmu_cycles_ = 0;
+  uint32_t inst_retired_ = 0;
 };
 
 #endif

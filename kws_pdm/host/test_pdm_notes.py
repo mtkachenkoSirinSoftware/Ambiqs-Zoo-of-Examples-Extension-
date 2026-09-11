@@ -51,6 +51,42 @@ class PdmNotes(unittest.TestCase):
         main = (PDM / "src" / "main.cc").read_text()
         self.assertIn('Frame %lu  peak=', main)
         self.assertIn("KwsPrintPerfBanner", main)
+        self.assertIn("KWS_PDM_RTT_PCM", main)
+        self.assertIn("rtt ch1=PCM", main)
+        cmake = (PDM / "CMakeLists.txt").read_text()
+        self.assertIn("KWS_PDM_RTT_PCM", cmake)
+        self.assertIn("option(KWS_PDM_RTT_PCM", cmake)
+        rtt_h = (PDM / "src" / "kws_pdm_rtt.h").read_text()
+        self.assertIn("kKwsPdmRttPcmChannel = 1", rtt_h)
+        rtt_c = (PDM / "src" / "kws_pdm_rtt.c").read_text()
+        self.assertIn("SEGGER_RTT_Write", rtt_c)
+        self.assertIn('\"PCM\"', rtt_c)
+        rtt_md = (PDM / "rtt" / "README.md").read_text()
+        self.assertIn("Channel 1 is hop PCM", rtt_md)
+        self.assertIn("not a label", rtt_md.lower())
+
+    def test_rtt_pcm_dump_is_ch1_16khz_not_gate3(self) -> None:
+        import importlib.util
+
+        path = PDM / "host" / "rtt_pcm_dump.py"
+        spec = importlib.util.spec_from_file_location("rtt_pcm_dump", path)
+        self.assertIsNotNone(spec)
+        assert spec is not None and spec.loader is not None
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(mod.CHANNEL, 1)
+        self.assertEqual(mod.SAMPLE_RATE_HZ, 16000)
+        self.assertIn("not GATE 3", mod.NOTES)
+        self.assertIn("not LiteRT", mod.NOTES)
+        dummy = b"\x00\x01\xff\x7f"
+        wav = mod.pack_wav_pcm16(dummy)
+        self.assertEqual(wav[:4], b"RIFF")
+        self.assertEqual(wav[8:12], b"WAVE")
+        self.assertEqual(len(wav), 44 + len(dummy))
+        src = path.read_text()
+        self.assertIn("rtt_read(CHANNEL", src)
+        self.assertNotIn("tflite_runtime", src)
+        self.assertNotIn("tensorflow", src.lower())
 
 
 if __name__ == "__main__":

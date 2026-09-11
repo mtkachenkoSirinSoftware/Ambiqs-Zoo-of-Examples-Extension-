@@ -22,7 +22,8 @@ flash). Needs `nsx` on `PATH` and a TTY or the `script -q` wrapper in README.
 | `kws_pdm/` | example 3 — EVB PDM MEMS |
 | `assets/depgraph_r060_kd_int8.tflite` | the one shipping INT8 graph |
 | `kws_uart/host/synthetic.wav` | the one identity WAV (same PCM as the flash clip) |
-| `kws_uart/host/stream_wav.py` | host tool (DTR/RTS low, 921600) |
+| `kws_uart/host/stream_wav.py` | host tool (`--list-ports`, `--dtr auto`) |
+| `kws_uart/host/rpc_infer.py` | USB RPC INFER of 16000 int16 (not the usb_rpc toy) |
 | `tools/embed_model.py` | Class A/B/C `--check` + C-array emit |
 | `README.md`, `LICENSE`, `COVER.md`, this file | first-read + license |
 

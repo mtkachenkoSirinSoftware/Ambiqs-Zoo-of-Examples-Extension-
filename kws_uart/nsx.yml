@@ -16,6 +16,11 @@ channel: stable
 
 modules:
   - nsx-power
+  - nsx-ambiq-usb
+  - nsx-usb
+  - nsx-timer
+  - nsx-interrupt
+  - nsx-nanopb
   - name: nsx-cmsis-nn
     project: ns-cmsis-nn
     revision: b386770a4588e2b46a6ca6df97fa487c9f3dedd4
@@ -31,6 +36,9 @@ module_registry:
     helia-rt:
       url: https://github.com/AmbiqAI/helia-rt.git
       revision: cfab1523a58bcfab69a106efea22c530b8100285
+    nsx-nanopb:
+      url: https://github.com/AmbiqAI/nsx-nanopb.git
+      revision: v0.1.1
   modules:
     nsx-cmsis-nn:
       project: ns-cmsis-nn
@@ -38,5 +46,9 @@ module_registry:
     nsx-helia-rt:
       project: helia-rt
       revision: cfab1523a58bcfab69a106efea22c530b8100285
+    nsx-nanopb:
+      project: nsx-nanopb
+      revision: v0.1.1
+      metadata: modules/nsx-nanopb/nsx-module.yaml
 
 features: {}

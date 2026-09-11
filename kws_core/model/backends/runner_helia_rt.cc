@@ -162,8 +162,23 @@ uint32_t ModelRunner::arena_used_bytes() { return g_arena_used; }
 void ModelRunner::PrintClipPmuCsv() {
 #if defined(KWS_CLIP_PMU)
   nsx_printf("--- Per-Layer PMU ---\n");
-  nsx_printf("  last Invoke on synthetic PCM; not hpx profile; not always-on hop time\n");
+  nsx_printf(
+      "  model-only, this binary; not always-on milliwatts; not hpx profile; "
+      "last Invoke on synthetic PCM\n");
   g_clip_pmu.PrintCsv();
+  if (g_interpreter != nullptr) {
+    g_clip_pmu.BeginWholeInvokeMeasure();
+    (void)g_interpreter->Invoke();
+    g_clip_pmu.EndWholeInvokeMeasure();
+    nsx_printf("dwt_cycles=%lu pmu_cycles=%lu inst_retired=%lu\n",
+               (unsigned long)g_clip_pmu.dwt_cycles(),
+               (unsigned long)g_clip_pmu.pmu_cycles(),
+               (unsigned long)g_clip_pmu.inst_retired());
+    nsx_printf(
+        "  pmu_profiling events on a second Invoke of the same tensor; "
+        "invoke_cycles= is first Invoke CYCCNT (with per-layer PMU). "
+        "A mismatch is a fact, not a bug.\n");
+  }
 #endif
 }
 

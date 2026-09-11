@@ -57,12 +57,17 @@ endif()
 
 set(KWS_PDM_USE_NSX_AUDIO ON CACHE BOOL
     "PDM via nsx-audio hop=320 (HFRC2_ADJ 16 kHz). OFF = Suite PLL HAL.")
+option(KWS_PDM_RTT_PCM
+    "Dump hop PCM on RTT channel 1 (not labels; labels stay on SWO)" OFF)
 
 set(_pdm_src src/main.cc src/kws_profile_target.c)
 if(KWS_PDM_USE_NSX_AUDIO)
   list(APPEND _pdm_src src/nsx_audio_source.c)
 else()
   list(APPEND _pdm_src src/apollo510_audio.c)
+endif()
+if(KWS_PDM_RTT_PCM)
+  list(APPEND _pdm_src src/kws_pdm_rtt.c rtt/RTT/SEGGER_RTT.c)
 endif()
 
 add_executable(kws_pdm
@@ -76,6 +81,12 @@ target_include_directories(kws_pdm PRIVATE
     ${KWS_PDM_ROOT}/src
     ${KWS_CORE_ROOT}
 )
+if(KWS_PDM_RTT_PCM)
+  target_include_directories(kws_pdm PRIVATE
+      ${KWS_PDM_ROOT}/rtt/RTT
+      ${KWS_PDM_ROOT}/rtt/Config
+  )
+endif()
 
 target_compile_definitions(kws_pdm PRIVATE
     KWS_TARGET_APOLLO510=1
@@ -85,6 +96,9 @@ target_compile_definitions(kws_pdm PRIVATE
 )
 if(KWS_PDM_USE_NSX_AUDIO)
   target_compile_definitions(kws_pdm PRIVATE KWS_PDM_USE_NSX_AUDIO=1)
+endif()
+if(KWS_PDM_RTT_PCM)
+  target_compile_definitions(kws_pdm PRIVATE KWS_PDM_RTT_PCM=1)
 endif()
 
 target_link_libraries(kws_pdm PRIVATE

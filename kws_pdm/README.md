@@ -76,6 +76,22 @@ Optional L/R swap (HAL backend only):
 nsx build --app-dir . -- -DKWS_PDM_USE_NSX_AUDIO=OFF -DKWS_PDM_LR_SWAP=1
 ```
 
+Optional hop-PCM dump on **RTT channel 1** (Suite `pdm_rtt_stream` split;
+labels stay on SWO). Default is **OFF**. This `nsx` has no CMake-arg
+passthrough, so set the cache then build (wrap `cmake` in `script` if
+`file(WRITE /dev/stdout)` fails):
+
+```bash
+script -q -e -c 'cmake -DKWS_PDM_RTT_PCM=ON build/apollo510_evb' /tmp/cmake-pdm-rtt.log
+nsx build --app-dir .
+nsx flash --app-dir .
+# kill nsx view first — the J-Link OB is exclusive
+python3 host/rtt_pcm_dump.py --duration 3 --out /tmp/pdm.wav
+```
+
+That `.wav` is 16 kHz mono int16 from RTT ch1. It is **not** LiteRT and
+**not** GATE 3. Channel 1 is PCM, not a label — see [`rtt/README.md`](rtt/README.md).
+
 Host checks (no board, no mic):
 
 ```bash
@@ -97,6 +113,7 @@ pdm backend=nsx-audio hop=320 fs=16000 clk=HFRC2_ADJ (not pdm_fft PLL)
 gpio clk=50 data=51  (BSP; audio_capture README onboard-mic claim unverified here)
 model sha256=ae08012b5a5d
 pred is live PDM, not GATE 3, not a GSC clip, not hpx profile
+rtt ch1=PCM 16kHz int16 hop=320 (not labels; labels on SWO)   # only with -DKWS_PDM_RTT_PCM=ON
 Frame 50  peak=<n> dc=<n> overruns=0 dma_faults=0 derr=0
 live pred=<label> score=<s> fired=0|1 invoke_cycles=<DWT> invoke_us=<us>
   invoke_us = CYCCNT / cpu_hz (see perf_mode=); not hpx profile
@@ -118,9 +135,12 @@ event label=<kw> score=<s>     # only when the recognizer fires
 |---|---|
 | `src/main.cc` | `nsx_system_init`, drain PDM hops, SWO |
 | `src/nsx_audio_source.c` | default `AudioSource` via `nsx-audio`, hop 320 |
+| `src/kws_pdm_rtt.c` | optional RTT ch1 hop dump (`-DKWS_PDM_RTT_PCM=ON`) |
 | `src/apollo510_audio.c` | HAL PLL backend (`-DKWS_PDM_USE_NSX_AUDIO=OFF`) |
 | `audio/pdm_pcm16.h` | PLL identity + 24-bit → PCM16 |
 | `host/nsx_audio_default.md` | 2.2 source reading of `nsx_audio_pdm_default` |
+| `host/rtt_pcm_dump.py` | drain RTT ch1 → 16 kHz int16; **not** GATE 3 |
+| `rtt/` | SEGGER RTT V8.58.0; ch1 = PCM, not a label |
 | `host/expected.json` | pins + SHA; **no** `pred` field |
 | `nsx.yml` / `nsx.lock` | helia-rt 1.19.0 + ns-cmsis-nn 7.31.0 pins |
 
@@ -134,14 +154,15 @@ PDM `live pred=` is still not GATE 3 after a swap.
 ## Linked image (host, not latency)
 
 `nsx build` produces `build/apollo510_evb/kws_pdm` (ELF) and `.bin`. One
-successful link on this tree:
+successful link on this tree **with** `-DKWS_PDM_RTT_PCM=ON` (ch1 ring in
+SRAM; default OFF is smaller):
 
 | Segment | Bytes |
 |---|---|
-| `.text` | 291856 |
+| `.text` | 293104 |
 | `.data` | 2620 |
-| `.bss` | 507840 |
-| `.bin` | 288 KiB |
+| `.bss` | 512960 |
+| `.bin` | 296 KiB |
 
 That is the **linked image**, not Apollo510 latency, not a microphone result.
 `pred=` on SWO still needs a MEMS on GPIO 50/51, `nsx flash`, and `nsx view`.

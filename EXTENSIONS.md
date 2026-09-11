@@ -99,8 +99,8 @@ Already the documented first step for `kws_pdm`. Do not fork the HAL.
 
 | ID | Add | Where | Done when |
 |---|---|---|---|
-| 3.1 | Optional hop-PCM dump on **RTT channel 1**; labels stay on SWO/ITM | `kws_pdm` compile flag | same channel split as `pdm_rtt_stream`; README: ch1 is PCM, not a label |
-| 3.2 | Tiny `host/rtt_pcm_dump.py` in the style of their `rtt_logger.py` | `kws_pdm/host/` | 16 kHz int16 file; **not** LiteRT, not GATE 3 |
+| 3.1 | Optional hop-PCM dump on **RTT channel 1**; labels stay on SWO/ITM | `kws_pdm` compile flag | **landed** — `-DKWS_PDM_RTT_PCM=ON`; ch1 = PCM, labels on SWO |
+| 3.2 | Tiny `host/rtt_pcm_dump.py` in the style of their `rtt_logger.py` | `kws_pdm/host/` | **landed** — 16 kHz int16 `.wav`/`.pcm`; **not** LiteRT, not GATE 3 |
 
 This is not phase 7.
 
@@ -112,8 +112,8 @@ This is not phase 7.
 
 | ID | Add | Where | Done when |
 |---|---|---|---|
-| 4.1 | Same two events as their README (CPU_CYCLES + INST_RETIRED) next to DWT | `kws_clip` | two numbers: DWT CYCCNT and PMU CPU_CYCLES; a mismatch is a fact, not a bug |
-| 4.2 | Optional MVE / D-cache miss from `NSX_PMU_PRESET_ML_DEFAULT` (already in `kws_infer`) | clip only | column “model-only, this binary”; not always-on milliwatts |
+| 4.1 | Same two events as their README (CPU_CYCLES + INST_RETIRED) next to DWT | `kws_clip` | **landed** — `dwt_cycles=` / `pmu_cycles=` / `inst_retired=` on a **second** Invoke of the same tensor (ML_DEFAULT already owns all 8 counters on the first). A mismatch is a fact, not a bug |
+| 4.2 | Optional MVE / D-cache miss from `NSX_PMU_PRESET_ML_DEFAULT` (already in `kws_infer`) | clip only | **landed** — CSV header “model-only, this binary”; columns are kws_infer's ML_DEFAULT (MVE inst/MAC, INST_RETIRED, BUS_CYCLES — not L1D). Not always-on milliwatts |
 
 Do not attach the PMU to the UART FIFO or the PDM ISR (ingest stalls ≠ conv stalls).
 
@@ -143,8 +143,8 @@ Two ports, inverted DTR contracts.
 
 | ID | Add | Where | Done when |
 |---|---|---|---|
-| 6.1 | `stream_wav.py` distinguishes J-Link VCP vs NSX CDC (`list_ports`); `--dtr {low,high}` | `kws_uart/host/` | UART README cites their “pick the right port” |
-| 6.2 | Optional PCM backend on `nsx-usb` CDC; labels still on SWO | same `0xA51C` protocol | `synthetic.wav` → `pred=go` over CDC; DTR=True as in `usb_serial` |
+| 6.1 | `stream_wav.py` distinguishes J-Link VCP vs NSX CDC (`list_ports`); `--dtr {low,high}` | `kws_uart/host/` | **landed** — UART README cites their “pick the right port”; `--dtr auto` |
+| 6.2 | Optional PCM backend on `nsx-usb` CDC; labels still on SWO | same `0xA51C` protocol | **landed** firmware — `-DKWS_UART_USB_CDC=ON`; EVB SWO `uart cdc nsx-usb 0xA51C`; DTR=True as in `usb_serial`. Host `synthetic.wav` → `pred=go` over CDC is **deferred** until `0xCafe`/`0x4011` enumerates (this host sees only J-Link `1366:1024`) |
 
 6.2 is the only new **transport** in this canvas (not a new graph). Useful when
 the reviewer has one USB cable. Still not phase 7.
@@ -157,8 +157,8 @@ the reviewer has one USB cable. Still not phase 7.
 
 | ID | Add | Priority | Done when |
 |---|---|---|---|
-| 7.1 | One paragraph: SWO `pred=` is this firmware; their `INFER` is another image | low | nobody compares the toy class to `pred=go` |
-| 7.2 | RPC `INFER` accepts 16000 int16 and runs `KwsApp` | only if they ask for RPC | last raw argmax vs LiteRT on **that** buffer |
+| 7.1 | One paragraph: SWO `pred=` is this firmware; their `INFER` is another image | low | **landed** — UART README + PROTOCOL.md + `rpc/README.md` |
+| 7.2 | RPC `INFER` accepts 16000 int16 and runs `KwsApp` | asked | **landed** firmware — `-DKWS_UART_USB_RPC=ON`; EVB SWO `usb rpc INFER=16000 int16 KwsApp` + the 5-class-toy disclaimer. Host `rpc_infer.py` → USB `class_id` is **deferred** until `0xCafe`/`0x4011` enumerates (same cable as 6.2). SWO `pred=` vs LiteRT on **that** buffer is the identity once CDC is up |
 
 7.2 is heavier and off the clip/uart style. Not the first slot after packaging.
 

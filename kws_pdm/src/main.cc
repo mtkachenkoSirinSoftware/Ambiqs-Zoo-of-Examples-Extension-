@@ -14,6 +14,10 @@
 #include "nsx_core.h"
 #include "nsx_system.h"
 
+#if defined(KWS_PDM_RTT_PCM)
+#include "kws_pdm_rtt.h"
+#endif
+
 namespace {
 
 const nsx_system_config_t kCfg = {
@@ -54,6 +58,10 @@ int main(void) {
     }
   }
 
+#if defined(KWS_PDM_RTT_PCM)
+  KwsPdmRttInit();
+#endif
+
   nsx_printf("kws_pdm runtime=%s arena_used=%u\n", kws::ModelRunner::runtime_name(),
              static_cast<unsigned>(kws::ModelRunner::arena_used_bytes()));
   KwsPrintPerfBanner(kCfg.perf_mode);
@@ -69,6 +77,10 @@ int main(void) {
 #endif
   nsx_printf("model sha256=%.12s\n", KWS_MODEL_SHA256);
   nsx_printf("pred is live PDM, not GATE 3, not a GSC clip, not hpx profile\n");
+#if defined(KWS_PDM_RTT_PCM)
+  nsx_printf("rtt ch1=PCM 16kHz int16 hop=%u (not labels; labels on SWO)\n",
+             (unsigned)KWS_AUDIO_BLOCK_SAMPLES);
+#endif
 
   uint32_t now_ms = 0;
   uint32_t last_stats_ms = 0;
@@ -78,6 +90,9 @@ int main(void) {
       uint32_t count = 0;
       const AudioSample* block = AudioSourceAcquireBlock(&count);
       if (block != nullptr) {
+#if defined(KWS_PDM_RTT_PCM)
+        KwsPdmRttWriteHop(block, count);
+#endif
         app.OnAudioBlock(block, count, now_ms);
       }
       AudioSourceReleaseBlock();

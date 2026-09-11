@@ -49,16 +49,19 @@ labels=tfds index 1=go (not kws_infer MLPerf index 11=go); assets/LABELS.md
 pred=go score=0.980 fired=0|1 invoke_cycles=<DWT> invoke_us=<CYCCNT/cpu_hz>
   invoke_us = CYCCNT / cpu_hz (see perf_mode=); not hpx profile
 --- Per-Layer PMU ---
-  last Invoke on synthetic PCM; not hpx profile; not always-on hop time
-"Layer","Op",...
+  model-only, this binary; not always-on milliwatts; not hpx profile; last Invoke on synthetic PCM
+"Layer","Op","ARM_PMU_MVE_INST_RETIRED",...
+dwt_cycles=<N> pmu_cycles=<N> inst_retired=<N>
+  pmu_profiling events on a second Invoke of the same tensor; ...
 ```
 
 | Line | What it is |
 |---|---|
 | `pred=go` | last raw argmax; must match `host/expected.json` (tfds index 1) |
 | `fired=` | recognizer (smooth / threshold / debounce); not GATE 3 |
-| `invoke_cycles=` / `invoke_us=` | DWT of **this** `Invoke` / CYCCNT÷`cpu_hz`; not `hpx profile` |
-| `--- Per-Layer PMU ---` | `nsx-pmu-armv8m` CSV for that Invoke; not always-on |
+| `invoke_cycles=` / `invoke_us=` | DWT of the **first** `Invoke` / CYCCNT÷`cpu_hz`; not `hpx profile` |
+| `--- Per-Layer PMU ---` | `NSX_PMU_PRESET_ML_DEFAULT` CSV for that first Invoke; **model-only, this binary**; not always-on milliwatts |
+| `dwt_cycles=` / `pmu_cycles=` | DWT CYCCNT vs `ARM_PMU_CPU_CYCLES` on a **second** Invoke of the same tensor (`pmu_profiling` events). A mismatch is a fact, not a bug |
 | `arena_used=` | target allocator; host reference kernel used 12352 B as a lower bound |
 
 `score=` on the MCU is softmax of int8 logits; it can differ in the fourth
@@ -84,10 +87,10 @@ successful link on this tree:
 
 | Segment | Bytes |
 |---|---|
-| `.text` | 337616 |
-| `.data` | 5388 |
-| `.bss` | 502512 |
-| `.bin` | 335 KiB |
+| `.text` | 338096 |
+| `.data` | 5404 |
+| `.bss` | 502496 |
+| `.bin` | 336 KiB |
 
 That is the **linked image**, not Apollo510 latency, not MACs, not host ms.
 `pred=` on SWO still needs `nsx flash` + `nsx view` on an EVB.
