@@ -117,6 +117,10 @@ class ModelRunner {
   // fact, not a latency one, so it is safe to publish as measured.
   static uint32_t arena_used_bytes();
 
+  // kws_clip only: per-layer PMU CSV after Invoke (no-op without KWS_CLIP_PMU).
+  // Not hpx profile and not always-on hop time.
+  static void PrintClipPmuCsv();
+
   // Backend-specific status from the last failed call; 0 when clean.
   // heliaRT: TfLiteStatus. ExecuTorch: (stage << 16) | executorch_error.
   uint32_t last_error() const { return last_error_; }

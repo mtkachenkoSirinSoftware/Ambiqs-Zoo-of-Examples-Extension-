@@ -15,6 +15,7 @@ channel: stable
 
 modules:
   - nsx-power
+  - nsx-audio
   - name: nsx-cmsis-nn
     project: ns-cmsis-nn
     revision: b386770a4588e2b46a6ca6df97fa487c9f3dedd4

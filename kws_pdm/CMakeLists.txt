@@ -55,10 +55,18 @@ if(NOT EXISTS "${_model_cc}")
   endif()
 endif()
 
+set(KWS_PDM_USE_NSX_AUDIO ON CACHE BOOL
+    "PDM via nsx-audio hop=320 (HFRC2_ADJ 16 kHz). OFF = Suite PLL HAL.")
+
+set(_pdm_src src/main.cc src/kws_profile_target.c)
+if(KWS_PDM_USE_NSX_AUDIO)
+  list(APPEND _pdm_src src/nsx_audio_source.c)
+else()
+  list(APPEND _pdm_src src/apollo510_audio.c)
+endif()
+
 add_executable(kws_pdm
-    src/main.cc
-    src/apollo510_audio.c
-    src/kws_profile_target.c
+    ${_pdm_src}
     ${KWS_CORE_SOURCES}
     ${_model_cc}
 )
@@ -75,6 +83,9 @@ target_compile_definitions(kws_pdm PRIVATE
     KWS_RUNTIME_HELIA_RT=1
     KWS_AUDIO_SOURCE_MIC=1
 )
+if(KWS_PDM_USE_NSX_AUDIO)
+  target_compile_definitions(kws_pdm PRIVATE KWS_PDM_USE_NSX_AUDIO=1)
+endif()
 
 target_link_libraries(kws_pdm PRIVATE
     nsx::board
@@ -82,5 +93,8 @@ target_link_libraries(kws_pdm PRIVATE
     nsx::power
     nsx::helia_rt
 )
+if(KWS_PDM_USE_NSX_AUDIO)
+  target_link_libraries(kws_pdm PRIVATE nsx::audio)
+endif()
 
 nsx_finalize_app(kws_pdm)

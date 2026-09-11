@@ -9,6 +9,7 @@
 #include "config/kws_config.h"
 #include "model/model_runner.h"
 #include "profiling/kws_profile.h"
+#include "profiling/kws_swo_perf.h"
 #include "apollo510_uart.h"
 
 #include "nsx_core.h"
@@ -28,10 +29,9 @@ const nsx_system_config_t kCfg = {
 void PrintPred(const kws::KwsApp& app) {
   const int lab = app.last_label();
   const char* name = (lab >= 0 && lab < KWS_NUM_CLASSES) ? kws::kLabels[lab] : "-";
-  nsx_printf("pred=%s score=%.3f fired=%d invoke_cycles=%u\n", name, app.last_score(),
-             app.last_event().fired ? 1 : 0,
-             static_cast<unsigned>(app.telemetry().inference_cycles_last));
-  nsx_printf("  invoke_cycles is DWT CYCCNT of this binary's Invoke, not hpx profile\n");
+  nsx_printf("pred=%s score=%.3f fired=%d", name, app.last_score(),
+             app.last_event().fired ? 1 : 0);
+  KwsPrintInvokeTail(app.telemetry().inference_cycles_last);
 }
 
 }  // namespace
@@ -55,10 +55,12 @@ int main(void) {
 
   nsx_printf("kws_uart runtime=%s arena_used=%u\n", kws::ModelRunner::runtime_name(),
              static_cast<unsigned>(kws::ModelRunner::arena_used_bytes()));
+  KwsPrintPerfBanner(kCfg.perf_mode);
   nsx_printf("uart poll-fifo then 1s RAM infer @ %u; PCM on PRINT UART; labels on SWO\n",
              (unsigned)KWS_UART_BAUD);
   nsx_printf("model sha256=%.12s  (host LiteRT on identical PCM: host/expected.json)\n",
              KWS_MODEL_SHA256);
+  nsx_printf("labels=tfds index 1=go (not kws_infer MLPerf index 11=go); assets/LABELS.md\n");
 
   uint32_t now_ms = 0;
   for (;;) {

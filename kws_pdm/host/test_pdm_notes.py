@@ -26,12 +26,31 @@ class PdmNotes(unittest.TestCase):
         self.assertEqual(exp["model"]["sha256"], hashlib.sha256(TFLITE.read_bytes()).hexdigest())
         self.assertEqual(exp["pdm"]["clk_out_hz"], 2048000)
         self.assertEqual(exp["pdm"]["fs_hz"], 16000)
+        self.assertNotIn("pred", exp)
+        self.assertEqual(exp["firmware"]["backend"], "nsx-audio")
+        self.assertEqual(exp["firmware"]["hop_samples"], 320)
+        self.assertEqual(exp["firmware"]["fs_hz"], 16000)
 
     def test_header_pins_pdm_fft_recipe(self) -> None:
         text = HEADER.read_text()
         self.assertIn("#define KWS_PDM_SRC_HZ 24576000u", text)
         self.assertIn("#define KWS_PDM_CLKO_DIV 5u", text)
         self.assertIn("#define KWS_PDM_DECIMATION 64u", text)
+
+    def test_nsx_audio_default_note_is_16khz_hfrc2(self) -> None:
+        note = (PDM / "host" / "nsx_audio_default.md").read_text()
+        self.assertIn("HFRC2_ADJ", note)
+        self.assertIn("16 000 Hz", note)
+        self.assertIn("exactly 16 kHz", note)
+        self.assertIn("320", note)
+        yml = (PDM / "nsx.yml").read_text()
+        self.assertIn("nsx-audio", yml)
+        src = (PDM / "src" / "nsx_audio_source.c").read_text()
+        self.assertIn("KWS_AUDIO_BLOCK_SAMPLES", src)
+        self.assertIn("nsx_audio_pdm_default", src)
+        main = (PDM / "src" / "main.cc").read_text()
+        self.assertIn('Frame %lu  peak=', main)
+        self.assertIn("KwsPrintPerfBanner", main)
 
 
 if __name__ == "__main__":

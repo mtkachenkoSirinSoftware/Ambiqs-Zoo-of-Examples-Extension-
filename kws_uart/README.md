@@ -10,6 +10,8 @@ hung the EVB (stats froze on the first host byte).
 The identity WAV is GATE-4 golden `synthetic` (`host/synthetic.wav`). Host
 LiteRT on that PCM predicts **`go`**. MCU `pred=` is comparable only on this
 PCM — not PDM, not a spoken GSC file unless you send that file's samples.
+Names are **tfds** order (`go` = index 1), not `kws_infer` MLPerf (`go` =
+index 11). See [`../assets/LABELS.md`](../assets/LABELS.md).
 
 ## Hardware
 
@@ -52,19 +54,21 @@ script -q -e -c 'nsx configure --app-dir .' /tmp/nsx-configure-uart.log
 
 ```
 kws_uart runtime=helia-rt arena_used=<N>
+perf_mode=LOW cpu_hz=96000000
 uart poll-fifo then 1s RAM infer @ 921600; PCM on PRINT UART; labels on SWO
 model sha256=ae08012b5a5d  (host LiteRT on identical PCM: host/expected.json)
+labels=tfds index 1=go (not kws_infer MLPerf index 11=go); assets/LABELS.md
 reset
 uart_clip samples=16000 dropped=0 poll=<n> bytes=<n>
-pred=go score=0.980 fired=0|1 invoke_cycles=<DWT>
-  invoke_cycles is DWT CYCCNT of this binary's Invoke, not hpx profile
+pred=go score=0.980 fired=0|1 invoke_cycles=<DWT> invoke_us=<CYCCNT/cpu_hz>
+  invoke_us = CYCCNT / cpu_hz (see perf_mode=); not hpx profile
 ```
 
 | Line | What it is |
 |---|---|
-| `pred=go` | last raw argmax on **this** PCM; must match `host/expected.json` |
+| `pred=go` | last raw argmax on **this** PCM; must match `host/expected.json` (tfds index 1) |
 | `fired=` | recognizer (smooth / threshold / debounce); not GATE 3 |
-| `invoke_cycles=` | DWT of **this** `Invoke`, not `hpx profile` |
+| `invoke_cycles=` / `invoke_us=` | DWT of **this** `Invoke` / CYCCNT÷`cpu_hz`; not `hpx profile` |
 | `dropped=` | samples past 16000 discarded at ingest |
 
 `score=` on the MCU is softmax of int8 logits; the **name** `go` is the check.

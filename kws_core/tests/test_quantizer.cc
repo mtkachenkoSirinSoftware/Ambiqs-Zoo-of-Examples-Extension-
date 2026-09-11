@@ -76,8 +76,9 @@ TEST(Quantizer, SoftmaxHandlesSaturatedLogitsWithoutOverflow) {
 
 TEST(ModelRunner, LabelOrderIsTfdsNotMlperf) {
   // Taken from optimizationExperiments/src/pruneopt/data/gsc.py. The classic
-  // MLPerf ordering starts with _silence_/_unknown_; this model does not.
+  // MLPerf ordering starts with silence/unknown and puts go at index 11.
   EXPECT_STREQ(kws::kLabels[0], "down");
+  EXPECT_STREQ(kws::kLabels[1], "go");
   EXPECT_STREQ(kws::kLabels[9], "yes");
   EXPECT_STREQ(kws::kLabels[10], "_silence_");
   EXPECT_STREQ(kws::kLabels[11], "_unknown_");

@@ -59,10 +59,10 @@ PMU and **their** multi-board list on **our** identity clip.
 
 | ID | Add | Where | Done when | Do not |
 |---|---|---|---|---|
-| 1.1 | Label-order table (MLPerf vs tfds) | `assets/` + one README line on clip/uart | a reviewer cannot confuse our `pred=go` (index 1) with their `"go"` (index 11) | remap classes in firmware “for compatibility” |
-| 1.2 | `nsx-pmu-armv8m` + `NsxPmuProfiler` on **clip** `Invoke` only; SWO block `--- Per-Layer PMU ---` | `kws_clip` | CSV shaped like `kws_infer`, tensor = `synthetic`; header says not always-on, not `hpx` | PMU on every `kws_pdm` hop as product latency |
-| 1.3 | Print `perf_mode=`; convert CYCCNT to µs only with that divisor | clip / uart / pdm | `/96` only if `NSX_PERF_LOW` was printed | guess 192 / 250 MHz |
-| 1.4 | Document `embed_model.py` as the way to refresh **their** `kws_model_data.h` | `bring_your_model.md` | Class B embeds into `kws_infer`; warn that their `kLabels[]` stays wrong until they change the table | hand-edit their C array |
+| 1.1 | Label-order table (MLPerf vs tfds) | `assets/` + one README line on clip/uart | **landed** — `assets/LABELS.md`; clip/uart SWO + README | remap classes in firmware “for compatibility” |
+| 1.2 | `nsx-pmu-armv8m` + `NsxPmuProfiler` on **clip** `Invoke` only; SWO block `--- Per-Layer PMU ---` | `kws_clip` | **landed** — CSV on synthetic clip only; not always-on, not `hpx` | PMU on every `kws_pdm` hop as product latency |
+| 1.3 | Print `perf_mode=`; convert CYCCNT to µs only with that divisor | clip / uart / pdm | **landed** — `invoke_us` only from printed `cpu_hz` | guess 192 / 250 MHz |
+| 1.4 | Document `embed_model.py` as the way to refresh **their** `kws_model_data.h` | `bring_your_model.md` | **landed** — `--kws-infer-header`; `kLabels[]` stays MLPerf | hand-edit their C array |
 | 1.5 | `targets.supported` as in `kws_infer` — **clip only** (no PDM/UART pinout) | `kws_clip/nsx.yml` | `nsx build --board apollo510b_evb` links | guess GPIO 50/51 on 510b / 330mP |
 
 This is `kws_infer` with a real input, not a second profiler firmware.
@@ -83,10 +83,10 @@ clock is **unconfirmed** vs the Suite PLL recipe; README disagrees with the BSP.
 
 | ID | Add | Where | Done when | Gate |
 |---|---|---|---|---|
-| 2.1 | Honest preflight: their `audio_capture` **or** Suite `pdm_rtt_stream`; footnote onboard-mic claim vs BSP 50/51 | `kws_pdm/README.md` | two bring-up paths; MEMS part still not guessed | do not “correct” their README as a board fact without their board file |
-| 2.2 | Read `nsx_audio_pdm_default` after `nsx lock` | note under `kws_pdm/` | if PLL 24.576 MHz / OSR 64 / 16 kHz → 2.3; if HFRC 15.625 kHz → **do not** switch | do not adopt the module by name |
-| 2.3 | `AudioSource` on `nsx-audio` instead of raw HAL; hop remains **320** | `kws_pdm` backend | `live pred=` contract unchanged; `nsx.yml` lists `nsx-audio` | change the frontend hop to 30 ms |
-| 2.4 | Print `peak=` / `dc=` in the `Frame N peak=` shape | `kws_pdm` SWO | someone coming from `audio_capture` recognises the line | treat peak as a KWS score |
+| 2.1 | Honest preflight: their `audio_capture` **or** Suite `pdm_rtt_stream`; footnote onboard-mic claim vs BSP 50/51 | `kws_pdm/README.md` | **landed** — two bring-up paths; MEMS part still not guessed | do not “correct” their README as a board fact without their board file |
+| 2.2 | Read `nsx_audio_pdm_default` after `nsx lock` | note under `kws_pdm/` | **landed** — HFRC2_ADJ → **exactly 16 kHz** (not Suite PLL, not 15.625 kHz) | do not adopt the module by name |
+| 2.3 | `AudioSource` on `nsx-audio` instead of raw HAL; hop remains **320** | `kws_pdm` backend | **landed** — default `nsx-audio`, hop 320; HAL PLL via `-DKWS_PDM_USE_NSX_AUDIO=OFF` | change the frontend hop to 30 ms |
+| 2.4 | Print `peak=` / `dc=` in the `Frame N peak=` shape | `kws_pdm` SWO | **landed** — `Frame N  peak=` | treat peak as a KWS score |
 
 **2.3 is the main “their module on our graph” hop.** Without 2.2 it is an Fs
 regression.

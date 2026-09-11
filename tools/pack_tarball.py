@@ -80,6 +80,7 @@ REQUIRED = (
     "bring_your_model.md",
     "Makefile",
     "assets/MODEL.txt",
+    "assets/LABELS.md",
     "assets/depgraph_r060_kd_int8.tflite",
     "tools/embed_model.py",
     "tools/embed_clip.py",
@@ -88,6 +89,7 @@ REQUIRED = (
     "kws_clip/nsx.yml",
     "kws_clip/nsx.lock",
     "kws_clip/src/main.cc",
+    "kws_clip/src/nsx_pmu_profiler.cc",
     "kws_clip/audio/generated/kws_clip_data.cc",
     "kws_clip/model/generated/kws_model_data.cc",
     "kws_clip/host/expected.json",
@@ -100,6 +102,8 @@ REQUIRED = (
     "kws_pdm/nsx.yml",
     "kws_pdm/nsx.lock",
     "kws_pdm/src/main.cc",
+    "kws_pdm/src/nsx_audio_source.c",
+    "kws_pdm/host/nsx_audio_default.md",
 )
 
 

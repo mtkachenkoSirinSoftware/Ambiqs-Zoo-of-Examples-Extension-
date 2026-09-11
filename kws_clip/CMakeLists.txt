@@ -72,6 +72,7 @@ add_executable(kws_clip
     src/main.cc
     src/flash_clip_source.c
     src/kws_profile_target.c
+    src/nsx_pmu_profiler.cc
     ${KWS_CORE_SOURCES}
     ${_model_cc}
     ${_clip_cc}
@@ -79,6 +80,7 @@ add_executable(kws_clip
 
 target_include_directories(kws_clip PRIVATE
     ${KWS_CLIP_ROOT}
+    ${KWS_CLIP_ROOT}/src
     ${KWS_CORE_ROOT}
 )
 
@@ -87,12 +89,14 @@ target_compile_definitions(kws_clip PRIVATE
     KWS_USE_NSX_MEM=1
     KWS_RUNTIME_HELIA_RT=1
     KWS_AUDIO_SOURCE_CLIP=1
+    KWS_CLIP_PMU=1
 )
 
 target_link_libraries(kws_clip PRIVATE
     nsx::board
     nsx::runtime_core
     nsx::power
+    nsx::pmu_armv8m
     nsx::helia_rt
 )
 

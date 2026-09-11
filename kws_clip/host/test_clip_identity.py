@@ -62,6 +62,18 @@ class ClipIdentity(unittest.TestCase):
             exp["model"]["sha256"],
             "ae08012b5a5dd1fd59673bba3d4b1d1c43d7cd1f410537824d7eb6c2edb40fb7",
         )
+        self.assertEqual(exp["label"], 1)
+        labels = (ZOO / "assets" / "LABELS.md").read_text()
+        self.assertIn("| 1 | **`go`** | `unknown` |", labels)
+        self.assertIn("| 11 | `_unknown_` | **`go`** |", labels)
+        self.assertIn("nsx-pmu-armv8m", (CLIP / "nsx.yml").read_text())
+        cmake = (CLIP / "CMakeLists.txt").read_text()
+        self.assertIn("nsx::pmu_armv8m", cmake)
+        self.assertIn("KWS_CLIP_PMU", cmake)
+        main = (CLIP / "src" / "main.cc").read_text()
+        self.assertIn("KwsPrintPerfBanner", main)
+        self.assertIn("PrintClipPmuCsv", main)
+        self.assertIn("labels=tfds index 1=go", main)
 
 
 if __name__ == "__main__":

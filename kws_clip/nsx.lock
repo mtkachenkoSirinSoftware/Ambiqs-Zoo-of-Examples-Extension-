@@ -3,12 +3,12 @@
 schema_version: 4
 targets:
   apollo510_evb:
-    generated_at: '2026-09-10T13:49:34+00:00'
+    generated_at: '2026-09-11T07:34:29+00:00'
     nsx_tool:
       version: 0.0.1
     manifest:
       path: nsx.yml
-      hash: sha256:7d0ac3c6d372cf0a3dbf2aef40337acd117610fed78d5aa140012bbea3a174e4
+      hash: sha256:ca2ebd1c62c2384c1b855a55cc4d7932f4e8f54fcf12c53ea8aa144d6cbb734e
     target:
       board: apollo510_evb
       soc: apollo510

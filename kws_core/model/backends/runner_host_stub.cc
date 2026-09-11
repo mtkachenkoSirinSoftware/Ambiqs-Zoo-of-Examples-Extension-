@@ -34,6 +34,7 @@ bool ModelRunner::Invoke() { return initialised_; }
 Runtime ModelRunner::runtime() { return Runtime::kHostStub; }
 const char* ModelRunner::runtime_name() { return "host-stub"; }
 uint32_t ModelRunner::arena_used_bytes() { return 0; }
+void ModelRunner::PrintClipPmuCsv() {}
 
 }  // namespace kws
 

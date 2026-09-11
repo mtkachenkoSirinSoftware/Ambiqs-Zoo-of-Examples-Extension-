@@ -29,6 +29,11 @@
 #include "tensorflow/lite/micro/system_setup.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 
+#if defined(KWS_CLIP_PMU)
+#include "nsx_core.h"
+#include "nsx_pmu_profiler.h"
+#endif
+
 // Arena placement.
 //
 // Where the arena lives dominates inference cost on Apollo510 far more than
@@ -66,6 +71,9 @@ alignas(alignof(tflite::MicroInterpreter)) uint8_t g_interpreter_storage[sizeof(
 tflite::MicroInterpreter* g_interpreter = nullptr;
 KwsOpResolver g_resolver;
 uint32_t g_arena_used = 0;
+#if defined(KWS_CLIP_PMU)
+NsxPmuProfiler g_clip_pmu;
+#endif
 
 }  // namespace
 
@@ -93,8 +101,14 @@ bool ModelRunner::Init() {
     ops_registered = true;
   }
 
+#if defined(KWS_CLIP_PMU)
+  g_clip_pmu.Init(NSX_PMU_PRESET_ML_DEFAULT);
+  g_interpreter = new (g_interpreter_storage) tflite::MicroInterpreter(
+      model, g_resolver, g_arena, sizeof(g_arena), nullptr, &g_clip_pmu);
+#else
   g_interpreter = new (g_interpreter_storage)
       tflite::MicroInterpreter(model, g_resolver, g_arena, sizeof(g_arena));
+#endif
 
   const TfLiteStatus status = g_interpreter->AllocateTensors();
   if (status != kTfLiteOk) {
@@ -130,6 +144,9 @@ bool ModelRunner::Init() {
 
 bool ModelRunner::Invoke() {
   if (!initialised_ || g_interpreter == nullptr) return false;
+#if defined(KWS_CLIP_PMU)
+  g_clip_pmu.ClearEvents();
+#endif
   const TfLiteStatus status = g_interpreter->Invoke();
   if (status != kTfLiteOk) {
     last_error_ = static_cast<uint32_t>(status);
@@ -141,6 +158,14 @@ bool ModelRunner::Invoke() {
 Runtime ModelRunner::runtime() { return Runtime::kHeliaRt; }
 const char* ModelRunner::runtime_name() { return "helia-rt"; }
 uint32_t ModelRunner::arena_used_bytes() { return g_arena_used; }
+
+void ModelRunner::PrintClipPmuCsv() {
+#if defined(KWS_CLIP_PMU)
+  nsx_printf("--- Per-Layer PMU ---\n");
+  nsx_printf("  last Invoke on synthetic PCM; not hpx profile; not always-on hop time\n");
+  g_clip_pmu.PrintCsv();
+#endif
+}
 
 }  // namespace kws
 

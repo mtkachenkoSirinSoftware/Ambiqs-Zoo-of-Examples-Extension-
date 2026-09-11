@@ -49,8 +49,16 @@ class UartIdentity(unittest.TestCase):
         exp = json.loads(EXPECTED.read_text())
         self.assertEqual(exp["clip"]["sha256"], gold_sha)
         self.assertEqual(exp["pred"], "go")
+        self.assertEqual(exp["label"], 1)
         self.assertEqual(exp["model"]["sha256"], sha256_file(TFLITE))
         self.assertEqual(exp["model"]["sha256"], SHIPPING)
+        labels = (ZOO / "assets" / "LABELS.md").read_text()
+        self.assertIn("| 1 | **`go`** | `unknown` |", labels)
+        self.assertIn("| 11 | `_unknown_` | **`go`** |", labels)
+        main = (UART / "src" / "main.cc").read_text()
+        self.assertIn("KwsPrintPerfBanner", main)
+        self.assertIn("KwsPrintInvokeTail", main)
+        self.assertIn("labels=tfds index 1=go", main)
 
 
 if __name__ == "__main__":

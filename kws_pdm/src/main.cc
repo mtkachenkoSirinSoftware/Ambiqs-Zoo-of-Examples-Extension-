@@ -2,12 +2,13 @@
 // kws_pdm — EVB PDM MEMS through kws_core. Labels on SWO (`nsx view`).
 //
 // Live pred is not GATE 3 and not comparable to LiteRT on a GSC WAV.
-// Bring up AmbiqSuite pdm_rtt_stream / pdm_fft on GPIO 50/51 first.
+// Preflight: neuralspotx audio_capture and/or AmbiqSuite pdm_rtt_stream.
 #include "app/kws_app.h"
 #include "audio/audio_source.h"
 #include "config/kws_config.h"
 #include "model/model_runner.h"
 #include "profiling/kws_profile.h"
+#include "profiling/kws_swo_perf.h"
 #include "apollo510_audio.h"
 
 #include "nsx_core.h"
@@ -29,10 +30,9 @@ const char* LabelName(int lab) {
 }
 
 void PrintPred(const kws::KwsApp& app, const char* kind) {
-  nsx_printf("%s pred=%s score=%.3f fired=%d invoke_cycles=%u\n", kind,
-             LabelName(app.last_label()), app.last_score(),
-             app.last_event().fired ? 1 : 0,
-             static_cast<unsigned>(app.telemetry().inference_cycles_last));
+  nsx_printf("%s pred=%s score=%.3f fired=%d", kind, LabelName(app.last_label()),
+             app.last_score(), app.last_event().fired ? 1 : 0);
+  KwsPrintInvokeTail(app.telemetry().inference_cycles_last);
 }
 
 }  // namespace
@@ -56,9 +56,17 @@ int main(void) {
 
   nsx_printf("kws_pdm runtime=%s arena_used=%u\n", kws::ModelRunner::runtime_name(),
              static_cast<unsigned>(kws::ModelRunner::arena_used_bytes()));
-  nsx_printf("pdm clk_out=%u fs=%u osr=%u gpio clk=%u data=%u lr_swap=%d\n",
+  KwsPrintPerfBanner(kCfg.perf_mode);
+#if defined(KWS_PDM_USE_NSX_AUDIO)
+  nsx_printf("pdm backend=nsx-audio hop=%u fs=16000 clk=HFRC2_ADJ (not pdm_fft PLL)\n",
+             (unsigned)KWS_AUDIO_BLOCK_SAMPLES);
+  nsx_printf("gpio clk=%u data=%u  (BSP; audio_capture README onboard-mic claim unverified here)\n",
+             (unsigned)KWS_PDM_CLK_GPIO, (unsigned)KWS_PDM_DATA_GPIO);
+#else
+  nsx_printf("pdm backend=hal clk_out=%u fs=%u osr=%u gpio clk=%u data=%u lr_swap=%d\n",
              (unsigned)KWS_PDM_CLK_OUT_HZ, (unsigned)KWS_PDM_FS_HZ, (unsigned)KWS_PDM_OSR,
              (unsigned)KWS_PDM_CLK_GPIO, (unsigned)KWS_PDM_DATA_GPIO, (int)KWS_PDM_LR_SWAP);
+#endif
   nsx_printf("model sha256=%.12s\n", KWS_MODEL_SHA256);
   nsx_printf("pred is live PDM, not GATE 3, not a GSC clip, not hpx profile\n");
 
@@ -95,11 +103,12 @@ int main(void) {
     if (now_ms - last_stats_ms >= 1000u) {
       last_stats_ms = now_ms;
       const AudioSourceStatus* st = AudioSourceGetStatus();
-      nsx_printf("pdm peak=%d dc=%d overruns=%u dma_faults=%u derr=%u\n",
-                 (int)st->pcm_peak_abs, (int)st->pcm_dc, (unsigned)st->overruns,
-                 (unsigned)st->dma_faults, (unsigned)st->uart_errors);
+      // audio_capture shape: "Frame N  peak=..." — hop count, plus dc.
+      nsx_printf("Frame %lu  peak=%d dc=%d overruns=%u dma_faults=%u derr=%u\n",
+                 (unsigned long)st->blocks_received, (int)st->pcm_peak_abs, (int)st->pcm_dc,
+                 (unsigned)st->overruns, (unsigned)st->dma_faults,
+                 (unsigned)st->uart_errors);
       PrintPred(app, "live");
-      nsx_printf("  invoke_cycles is DWT CYCCNT of this binary's Invoke, not hpx profile\n");
     }
   }
 }

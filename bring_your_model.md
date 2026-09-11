@@ -39,6 +39,24 @@ nsx flash --app-dir .
 helia-rt is read from `kws_clip/modules/helia-rt` after `nsx lock`, or pass
 `--helia-rt`.
 
+## Embed into neuralspotx `kws_infer` (Class B)
+
+Do not hand-edit `neuralspotx/examples/kws_infer/src/kws_model_data.h`.
+Refresh it with the same script:
+
+```bash
+python3 tools/embed_model.py path/to/student_int8.tflite --check
+python3 tools/embed_model.py path/to/student_int8.tflite \
+    --kws-infer-header path/to/neuralspotx/examples/kws_infer/src/kws_model_data.h
+```
+
+That header is their C array (`kws_model_data` / `kws_model_data_len`). It does
+**not** rewrite `kLabels[]` in their `main.cc`. That table stays **classic
+MLPerf** (`go` = index **11**) until they edit it. This zoo prints **tfds**
+order (`go` = index **1**). Same 12-way INT8, different name-at-index — see
+[`assets/LABELS.md`](assets/LABELS.md). Dummy-input `kws_infer` still does not
+run this PCM and is not GATE 3.
+
 ## UART / clip vs LiteRT (Class B)
 
 `kws_uart/host/expected.json` and `kws_clip/host/expected.json` are **shipping**

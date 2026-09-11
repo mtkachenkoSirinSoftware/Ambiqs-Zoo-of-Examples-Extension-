@@ -179,5 +179,36 @@ class CheckClassB(unittest.TestCase):
             self.assertTrue((out / "kws_model_data.cc").is_file())
 
 
+class KwsInferHeader(unittest.TestCase):
+    def test_shipping_emits_kws_infer_drop_in_without_labels(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            header = Path(tmp) / "kws_model_data.h"
+            out = Path(tmp) / "zoo"
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(EMBED),
+                    str(TFLITE),
+                    "--out-dir",
+                    str(out),
+                    "--kws-infer-header",
+                    str(header),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr + proc.stdout)
+            text = header.read_text()
+            self.assertIn("unsigned char kws_model_data[]", text)
+            self.assertIn(f"kws_model_data_len = {TFLITE.stat().st_size}", text)
+            self.assertIn(SHIPPING, text)
+            self.assertNotIn("static const char *kLabels", text)
+            self.assertNotIn('"silence"', text)
+            blob = TFLITE.read_bytes()
+            self.assertIn(f"0x{blob[0]:02x},", text)
+            self.assertIn("kLabels[] unchanged", proc.stdout)
+
+
 if __name__ == "__main__":
     raise SystemExit(unittest.main())

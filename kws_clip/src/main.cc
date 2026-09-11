@@ -3,12 +3,14 @@
 //
 // This is not dummy-input kws_infer and not PDM. Last raw argmax on this PCM
 // is comparable to host LiteRT on the same samples (host/expected.json).
+// Labels are tfds order (index 1 = go), not kws_infer MLPerf order — assets/LABELS.md.
 #include "app/kws_app.h"
 #include "audio/audio_source.h"
 #include "audio/generated/kws_clip_data.h"
 #include "config/kws_config.h"
 #include "model/model_runner.h"
 #include "profiling/kws_profile.h"
+#include "profiling/kws_swo_perf.h"
 
 #include "nsx_core.h"
 #include "nsx_system.h"
@@ -72,20 +74,22 @@ int main(void) {
 
   nsx_printf("kws_clip runtime=%s arena_used=%u\n", kws::ModelRunner::runtime_name(),
              static_cast<unsigned>(kws::ModelRunner::arena_used_bytes()));
+  KwsPrintPerfBanner(kCfg.perf_mode);
   nsx_printf("clip=%s n=%u sha256=%.12s\n", KWS_CLIP_NAME,
              static_cast<unsigned>(KWS_CLIP_N_SAMPLES), KWS_CLIP_SHA256);
   nsx_printf("model sha256=%.12s  (host LiteRT pred on this PCM: see host/expected.json)\n",
              KWS_MODEL_SHA256);
+  nsx_printf("labels=tfds index 1=go (not kws_infer MLPerf index 11=go); assets/LABELS.md\n");
 
   for (;;) {
     (void)app.ResetSession();
     PlayOnce(&app);
     const int lab = app.last_label();
     const char* name = (lab >= 0 && lab < KWS_NUM_CLASSES) ? kws::kLabels[lab] : "-";
-    nsx_printf("pred=%s score=%.3f fired=%d invoke_cycles=%u\n", name, app.last_score(),
-               app.last_event().fired ? 1 : 0,
-               static_cast<unsigned>(app.telemetry().inference_cycles_last));
-    nsx_printf("  invoke_cycles is DWT CYCCNT of this binary's Invoke, not hpx profile\n");
+    nsx_printf("pred=%s score=%.3f fired=%d", name, app.last_score(),
+               app.last_event().fired ? 1 : 0);
+    KwsPrintInvokeTail(app.telemetry().inference_cycles_last);
+    kws::ModelRunner::PrintClipPmuCsv();
     const uint32_t t0 = KwsCycleCount();
     while ((KwsCycleCount() - t0) < (96000000u * 2u)) {
     }

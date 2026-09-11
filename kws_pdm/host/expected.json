@@ -6,13 +6,20 @@
     "file": "assets/depgraph_r060_kd_int8.tflite",
     "sha256": "ae08012b5a5dd1fd59673bba3d4b1d1c43d7cd1f410537824d7eb6c2edb40fb7"
   },
+  "firmware": {
+    "backend": "nsx-audio",
+    "clock": "NSX_AUDIO_CLK_HFRC2_ADJ",
+    "hop_samples": 320,
+    "fs_hz": 16000,
+    "recipe": "nsx_audio_pdm_default; see host/nsx_audio_default.md. Not Suite pdm_fft PLL."
+  },
   "pdm": {
     "clk_gpio": 50,
     "data_gpio": 51,
     "clk_out_hz": 2048000,
     "fs_hz": 16000,
     "osr": 64,
-    "recipe": "AmbiqSuite pdm_fft / pdm_rtt_stream PLL"
+    "recipe": "AmbiqSuite pdm_fft / pdm_rtt_stream PLL (HAL fallback -DKWS_PDM_USE_NSX_AUDIO=OFF)"
   },
-  "notes": "Live PDM pred is not GATE 3. No host LiteRT comparison. peak= staying ~0 means the MEMS is silent or on the other L/R edge (rebuild with -DKWS_PDM_LR_SWAP=1). MEMS part, header, and VDDH2 voltage are not guessed."
+  "notes": "Live PDM pred is not GATE 3. No host LiteRT comparison. Firmware default is nsx-audio HFRC2_ADJ 16 kHz hop 320. peak= staying ~0 means the MEMS is silent or on the other L/R edge (HAL rebuild: -DKWS_PDM_USE_NSX_AUDIO=OFF -DKWS_PDM_LR_SWAP=1). MEMS part, header, and VDDH2 voltage are not guessed."
 }
